@@ -22,7 +22,7 @@ commit per completed chapter.
 - [x] Chapter 4 — Evaluate AI Systems
 - [x] Chapter 5 — Prompt Engineering
 - [x] Chapter 6 — RAG and Agents
-- [ ] Chapter 7 — Finetuning
+- [x] Chapter 7 — Finetuning
 - [ ] Chapter 8 — Dataset Engineering
 - [ ] Chapter 9 — Inference Optimization
 - [ ] Chapter 10 — Architecture and User Feedback

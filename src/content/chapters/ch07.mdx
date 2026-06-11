@@ -1,0 +1,199 @@
+---
+number: 7
+title: "Finetuning"
+shortTitle: "Finetuning"
+description: "Adapting models by changing their weights: when finetuning beats (and loses to) RAG, why memory is the bottleneck and how to calculate it, the PEFT revolution with a deep dive into LoRA and QLoRA, model merging for multi-task systems, and the practical tactics — frameworks, hyperparameters, development paths."
+readingTime: 34
+---
+
+import Figure from "../../components/Figure.astro";
+import KeyTakeaways from "../../components/KeyTakeaways.astro";
+import References from "../../components/References.astro";
+import KnowledgeCheck from "../../components/KnowledgeCheck.astro";
+import Ch07Decision from "../../components/diagrams/Ch07Decision.astro";
+import Ch07Memory from "../../components/diagrams/Ch07Memory.astro";
+import Ch07LoRA from "../../components/diagrams/Ch07LoRA.astro";
+import Ch07Merging from "../../components/diagrams/Ch07Merging.astro";
+import { flashcards, quiz, assignments } from "../../data/knowledge/ch07";
+
+Prompt-based methods adapt a model through its inputs; **finetuning** adapts it by changing its weights. It can sharpen domain capabilities and safety, but its most common job is improving instruction-following — getting outputs into the exact styles, structures, and formats you need. The trade: more customization for much more upfront investment, with **memory** as the central technical obstacle — most of this chapter's techniques exist to shrink finetuning's memory footprint. Fair warning carried over from the book itself: this is the most technical chapter, and it's fine to skim what your work doesn't need.
+
+## Finetuning Overview
+
+Finetuning is a form of **transfer learning** (an idea dating to 1976): knowledge from a data-rich task accelerates learning on a data-poor one — like piano skills transferring to a new instrument, or Google's early multilingual system translating Portuguese→Spanish *without any Portuguese–Spanish training pairs*. For LLMs, pre-training on abundant text completion transfers to specialized tasks (legal Q&A, text-to-SQL) with scarce data. The payoff is **sample efficiency**: a task that needs millions of examples from scratch might need a few hundred when finetuning a good base — the InstructGPT framing again: finetuning *unlocks* what the model already has. (The sibling approach: **feature-based transfer**, where a model provides embeddings or a backbone for another model — the classifier-head pattern from Chapter 2, ubiquitous in 2010s computer vision.)
+
+Since anything after pre-training counts as finetuning, it comes in flavors:
+
+- **Continued pre-training** — self-supervised finetuning on cheap, task-*related* data (raw legal documents; a Vietnamese corpus) before expensive task-specific data.
+- **Supervised finetuning** on (input, output) pairs — open- or close-ended; you can even finetune autoregressive models for *infilling* (fill-in-the-middle — handy for text editing and code debugging).
+- **Preference finetuning** with comparative data (instruction, winning response, losing response) via RL.
+- **Long-context finetuning** — stretching the context window, which requires architecture surgery (positional embeddings) and risks degrading short-sequence performance. The Code Llama lineage shows these composing: Llama 2 → code continued-pre-training → long-context (4K→16K) → instruction finetuning.
+
+As an application developer you'll almost always start from a *post-trained* model — the more refined and relevant it already is, the less work remains.
+
+## When to Finetune
+
+### Reasons to finetune
+
+The headline reason is quality — general *and* task-specific. A model great on benchmarks may stumble on your task: fine on standard SQL, lost on a rare dialect or your customer-specific query patterns — finetune on those. Structured-output reliability (JSON, YAML) is the most common driver of all. A quieter use case: **bias mitigation** — counteracting training-data biases with curated data (finetuning on text by female authors reduced gender bias in BERT-class models; African authors, racial bias). And the economics favor **small models**: finetuning a small model on a big model's outputs (**distillation**, Chapter 8) is the classic move — Grammarly's finetuned Flan-T5 beat a GPT-3 text-editing variant *60× its size* using 82K instruction pairs. The open-model boom made all of this far more practical.
+
+### Reasons not to finetune
+
+Four sobering ones. **Task interference**: finetuning for one task can degrade others (improve order-change queries, watch product recommendations slip) — fixes include multi-task data, separate models, or merging (below). **Upfront cost**: data annotation, ML training skill (optimizers, learning rates, overfitting diagnosis), and serving infrastructure. **The treadmill**: base models improve fast — define in advance how much a new base model must win by before you migrate, or your finetune becomes a maintenance albatross. **Premature optimization**: most "prompting doesn't work" stories collapse under scrutiny — unclear instructions, unrepresentative examples, undefined metrics. Exhaust systematic prompting first (it also builds the eval pipeline and data discipline finetuning will need). One pre-prompt-caching benefit — folding many examples into weights to shorten prompts — has faded, though finetuning still has no ceiling on example count where context windows do.
+
+<div class="note">
+<span class="aside-label">The BloombergGPT lesson</span>
+
+Beware "general models can't do our domain, so we must train our own." Bloomberg built a 50B financial model (1.3M GPU-hours, ~$1.3–2.6M in compute) — and GPT-4, released the same month, beat it soundly on financial benchmarks (e.g., 87 vs 75 on FiQA sentiment). It may still have served Bloomberg's private use cases and taught the team plenty — but verify the premise before spending millions on it. Comparable open-weight mid-size models now exist for self-hosting needs.
+
+</div>
+
+### Finetuning and RAG
+
+<Figure num="7.1" caption="Diagnose the failure type first: facts point to RAG, form points to finetuning — and evaluation comes before everything.">
+  <Ch07Decision />
+</Figure>
+
+The most-asked question — RAG or finetuning? — resolves by failure type. **Information-based failures** (factually wrong, outdated, missing — private data the model never saw, post-cutoff events) → **RAG**: research on current-events QA found RAG decisively beating finetuning, and strikingly, *RAG on the base model beating RAG on finetuned models* — finetuning had taxed general ability. **Behavior-based failures** (correct but irrelevant outputs, broken formats, weak grasp of a niche syntax — semantic parsing into uncommon DSLs is the canonical case) → **finetuning**. The slogan: **finetuning is for form; RAG is for facts.** RAG also mitigates hallucination by supplying knowledge; finetuning helps only with high-quality data and can *worsen* hallucination with bad data.
+
+If both failure types plague you, start with RAG (simpler — no training data, no model hosting changes; start with BM25, not a vector database), and note they compose: in the same experiments, adding RAG atop a finetuned model helped 43% of the time over RAG alone. The overall progression: prompt well → add examples → simple retrieval → (advanced retrieval | finetuning, by failure mode) → both. Define the evaluation pipeline *before* step one.
+
+## Memory Bottlenecks
+
+<Figure num="7.2" caption="Why training memory dwarfs inference memory — and the two levers (fewer trainable parameters, fewer bits) that every technique in this chapter pulls.">
+  <Ch07Memory />
+</Figure>
+
+Why is finetuning so memory-hungry? **Backpropagation.** Each training step runs a *forward pass* (compute output) and a *backward pass* (compute the **loss** against ground truth, derive a **gradient** per trainable parameter, and let the **optimizer** adjust weights). Inference runs only the forward pass. Every **trainable parameter** therefore drags extra baggage: one gradient value plus optimizer state — none for vanilla SGD, one for momentum, **two for Adam**, the transformer default.
+
+The napkin math worth memorizing:
+
+- **Inference** ≈ weights + ~20% for activations and KV vectors: N × M × 1.2. A 13B model at 2 bytes/param: 26 GB weights → ~31 GB. (A 70B model: 140 GB for weights alone.)
+- **Training** = weights + activations + gradients + optimizer states. Full-finetuning that 13B with Adam at 2 bytes: 13B × 3 × 2 = **78 GB** for gradients + optimizer alone. With only 1B trainable parameters: 6 GB — *that* is PEFT's entire motivation. And the activation caveat is real: stored-for-backprop activations can dwarf the weights; **gradient checkpointing** (recompute instead of store) trades time for memory.
+
+**Numerical representations** are the second lever. Floats come in FP32 ("single precision", 4 bytes), FP16 (2), FP64 (rare in NN work), plus AI-specific formats — **BF16** (Google/TPU) and **TF32** (NVIDIA; 19 bits despite the name). Each format splits bits between **range** (how big a value it can hold) and **precision** (how exactly): BF16 and FP16 share 16 bits, but BF16 spends more on range — it survives values that round to *infinity* in FP16, while representing each less precisely. This isn't trivia: Llama 2 shipped in BF16, many teams loaded it in FP16, and spent days confused by degraded quality. **Load models in their intended format.** Integer formats (INT8, INT4) go lower still.
+
+**Quantization** (strictly, conversion to integers; loosely — and in this book — any precision reduction) is the cheapest big win: a 13B model drops from 52 GB (FP32) to 26 GB (16-bit) to ~13 GB (INT8). Decisions: *what* to quantize (weights — more stable than activations) and *when*:
+
+- **Post-training quantization (PTQ)** — the overwhelmingly common case, free in major frameworks, standard for inference: 16-bit normal, 8-bit and 4-bit established (mixed 2–4 bit schemes serve models on phones; new GPU generations support 4-bit float natively). The frontier is absurd and real: ~1.58-bit models (ternary weights) matching 16-bit peers up to a few billion parameters. Lower precision also speeds computation and enables bigger batches — though conversion overhead can eat the gains, and out-of-range conversions degrade quality.
+- **Training-time quantization** — two distinct goals: prepare a model to *perform* well quantized (**quantization-aware training**, which simulates low precision during training without making training cheaper) or make *training itself* cheaper (true low-precision training — harder, since backprop is precision-sensitive; one AI company reported training entirely in INT8). The practical middle ground is **mixed precision** — sensitive values (weight master copies, loss) high, the rest low — automated by AMP in major frameworks. Also common: high-precision pre-training by resource-rich teams, low-precision finetuning by everyone else.
+
+## Finetuning Techniques
+
+### Parameter-efficient finetuning (PEFT)
+
+**Full finetuning** (update everything) is training with a better starting point — and at modern scale it's out of reach: a 7B model in 16-bit needs ~14 GB for weights + ~42 GB for Adam's gradients/states = 56 GB before activations, beyond nearly all consumer GPUs. (Memory aside, full SFT also wants data volumes most teams lack; complementary system tricks like CPU offloading can stretch hardware.) **Partial finetuning** (freeze most layers, tune the last ones — those nearest the output being most task-specific) saves memory but is parameter-*inefficient*: matching full finetuning on classic benchmarks took ~25% of parameters trainable.
+
+The PEFT insight: *insert* a small number of parameters in the right places instead of unfreezing existing ones. The original adapter work hit within 0.4% of full finetuning with **3%** of the trainable parameters — at the cost of extra inference latency from the bolt-on layers. PEFT methods are typically sample-efficient too (thousands of examples, not millions). Two families dominate:
+
+- **Adapter-based (additive)** — extra modules attached to weights: **LoRA** (utterly dominant — a GitHub-issues census of the main PEFT library shows it towering over everything else), BitFit, IA3 (efficient mixed-task batching), LongLoRA (context extension).
+- **Soft-prompt-based** — trainable *continuous* "tokens" fed alongside the input: unlike human-readable, static hard prompts, soft prompts are embedding-like vectors optimized by backpropagation — prompt engineering's trainable cousin. Variants (prefix-tuning, P-tuning, prompt tuning) differ mainly in *where* the soft tokens are inserted (every layer vs the embedded input only).
+
+### LoRA
+
+<Figure num="7.3" caption="LoRA: freeze W, train a low-rank A·B delta, merge it back for serving — or keep adapters separate to serve a hundred customers from one base model.">
+  <Ch07LoRA />
+</Figure>
+
+**LoRA** (Low-Rank Adaptation) fixes the adapter latency problem by adding parameters that *merge back in*. For a weight matrix W (n×m): pick a small rank r; create **A** (n×r) and **B** (r×m); use W′ = W + (α/r)·A·B; train *only A and B*. The underlying trick is classic **low-rank factorization**: a 9×9 matrix (81 parameters) approximated by 9×1 × 1×9 (18 parameters) — lossy, with higher rank preserving more. The numbers are dramatic: finetuning GPT-3 with ~4.7M trainable parameters — **0.0027%** of full finetuning — at comparable or better quality.
+
+**Why does this work at all?** If learning a behavior took billions of parameters and trillions of tokens, why can a sliver of parameters and a few thousand examples change it? The research answer: trained LLMs have **low intrinsic dimension** — pre-training implicitly *compresses* the task space, and (surprisingly) bigger models end up with lower intrinsic dimension. Pre-training is a compression framework for downstream tasks; the better the base, the less you need to move it. (Why not pre-train low-rank then? Tried for a decade — works at small scale, with recent methods reaching low billions of parameters — but if pre-training is what *creates* the low intrinsic dimension, full-rank pre-training may be the prerequisite that makes LoRA possible.)
+
+**Configuration**, distilled: apply LoRA to attention matrices first — with a fixed parameter budget, *all four attention matrices at rank 2 beat one matrix at rank 8* (coverage over depth); if you can only pick two, query + value; feedforward layers add complementary gains when memory allows. **Rank 4–64 usually suffices** — raising r often buys nothing (and may overfit), though task exceptions exist. The α:r ratio typically lands between 1:8 and 8:1 — experiment.
+
+**Serving** is where LoRA shines. Option one: merge A·B into W before deployment — zero added latency, one model. Option two: keep adapters separate — slight runtime merging cost, but **multi-LoRA serving**: 100 per-customer finetunes = one shared base (one 4096×4096 matrix ≈ 16.8M params) + 100 tiny (A,B) pairs (~65K params each) ≈ 23M parameters total instead of 1.68 *billion* for 100 merged copies — plus near-instant customer switching by adapter swap. This modularity scales down to phones: one on-device base model with per-feature adapters is how production on-device AI assistants are built. Adapters are shareable artifacts — public hubs carry finetuned adapters you can use like pre-trained models. The catches: LoRA trails full finetuning at the top end, and wiring it into unpopular architectures takes real implementation skill (popular bases are pre-wired in PEFT frameworks).
+
+**QLoRA** attacks the remaining elephant — the frozen base weights (a LoRA adapter is megabytes; the base is tens-to-hundreds of gigabytes). Store the base in 4-bit **NF4** (a format exploiting that pre-trained weights are roughly normal-distributed around zero), dequantize to BF16 on the fly per pass, add paged optimizers spilling CPU-ward under pressure — and a 65B model finetunes on a single 48 GB GPU. The resulting model family held its own against the strong chatbots of its day in judge-rated comparisons. Cost: quantize/dequantize overhead slows training. A lively research family (QA-LoRA, ModuLoRA, IR-QLoRA…) keeps pushing.
+
+### Model merging and multi-task finetuning
+
+<Figure num="7.4" caption="Three merging approaches — and the crucial distinction from ensembling, which combines outputs rather than parameters.">
+  <Ch07Merging />
+</Figure>
+
+If finetuning customizes one model, **merging** builds one from several — often finetuned ones — and (without further training) needs no GPU at all, which is why indie model developers love it. Value comes from quality (a model answering the first 60% of questions + one answering the last 60% → maybe 80% together) or footprint (two task models → one smaller multi-task model). The killer use case is **multi-task finetuning**: simultaneous training is data-hungry; sequential training hits **catastrophic forgetting** (learning task B erases task A); merging finetunes per-task *in parallel*, then combines — no forgetting, each task learned well. Merging also unlocks **on-device deployment** (one merged model where several wouldn't fit) and serves as a mechanism for **federated learning** (devices train local copies; merge the copies into a new base). Distinguish from **ensembling**, which combines *outputs* of intact models (better quality, multiple inference calls) where merging mixes *parameters* (one call) — and note merged models now crowd open leaderboards the way ensembles once did. Three approaches, mixable per layer:
+
+- **Summing.** Add weights: plain **linear combination** (weighted averaging — embarrassingly effective, the backbone of model soups and federated averaging; works best on same-base finetunes) and **SLERP** (interpolate along the sphere's surface between two vectors; pairwise, chainable). The elegant frame is **task vectors**: finetuned weights minus base weights = a vector capturing the task — enabling *task arithmetic*: add vectors to combine skills, *subtract* to remove behaviors (biases, unwanted capabilities). Before merging many vectors, **prune redundant deltas** (most finetuning changes are noise — keeping the top ~20% by magnitude performs like keeping all): that's TIES and DARE, and it matters more the more models you merge.
+- **Layer stacking** ("frankenmerging"). Take layers from multiple models and stack — new architectures, new parameter counts, usually needing further finetuning. Highlights: a 120B model assembled from two 70B finetunes; **sparse upcycling** (copy layers from a dense model, add a router → an MoE without training one from scratch — used to mix six weaker open models into something competitive with frontier models on some benchmarks); and **model upscaling** by depthwise scaling (duplicate a 32-layer model, sum some layers, stack the rest → a 48-layer model, then continue training — the SOLAR recipe).
+- **Concatenation.** Append parameters (two LoRA adapters of ranks r₁, r₂ → one of rank r₁+r₂). Included for completeness; not recommended — no memory savings over serving separately, marginal quality per parameter.
+
+### Finetuning tactics
+
+**Choosing the pieces.** Three choices: base model, method, framework. For base models, two development paths: the **progression path** (validate your training code on the cheapest model → validate data on a mid model — if loss won't drop with more data, something's wrong → push the best model → map the price/performance frontier and pick) and the **distillation path** (finetune the strongest affordable model on your small dataset → use it to *generate* training data → train a cheaper model on that). For methods: start with LoRA, graduate to full finetuning later — and respect data volume (full finetuning wants thousands-plus examples; LoRA shines on hundreds; with small data, full finetuning may not even win). Factor in serving: multi-LoRA beats maintaining N full models. For frameworks: finetuning APIs (easy, limited knobs and base-model menus) vs open frameworks (LLaMA-Factory, unsloth, PEFT, Axolotl, LitGPT — flexibility, your own compute; a mid-tier GPU covers most adapter work) vs distributed setups (DeepSpeed, PyTorch Distributed) for multi-machine.
+
+**Hyperparameters that matter:**
+
+- **Learning rate** — the step size toward the goal. No universal best (1e-7 to 1e-3; a common start: pre-training's final LR × 0.1–1). Read the loss curve: wild fluctuation = too high; stable-but-glacial = too low. Schedules vary it over training.
+- **Batch size** — too small (single digits) destabilizes updates; bigger is steadier and faster but memory-bound. The compute-constrained workaround is **gradient accumulation**: accumulate across small batches, update once enough signal gathers.
+- **Epochs** — passes over the data: millions of examples may need 1–2; thousands, 4–10. Training loss falling while *validation* loss rises = overfitting → fewer epochs.
+- **Prompt loss weight** — in instruction finetuning, how much prompt tokens (vs response tokens) contribute to loss; ~10% default — learn mostly from responses.
+
+<KeyTakeaways
+  items={[
+    "Finetuning = transfer learning: pre-trained knowledge makes adaptation <strong>sample-efficient</strong> (hundreds of examples, not millions). It comes in flavors — continued pre-training, SFT, preference finetuning, long-context.",
+    "<strong>Finetuning is for form; RAG is for facts.</strong> Diagnose failures first: information-based → RAG (which can beat finetuning even when finetuning is added on top); behavior-based (formats, styles, rare syntaxes) → finetuning.",
+    "Don't finetune first: it can degrade other tasks, demands data + skill + serving + maintenance, and base models improve underneath you. Most 'prompting failed' stories were unsystematic prompting. (And remember BloombergGPT vs GPT-4.)",
+    "Memory math: inference ≈ params × bytes × 1.2; training adds gradients + optimizer states (Adam: 3 extra values per <strong>trainable</strong> parameter) plus activations that can dwarf weights. A 7B full finetune ≈ 56 GB.",
+    "Two levers shrink it: fewer trainable parameters (<strong>PEFT</strong>) and fewer bits (<strong>quantization</strong>). Inference quantizes aggressively (4–8 bit standard); training needs mixed precision. Same bit-count ≠ same format: BF16 trades precision for range vs FP16 — load models as intended.",
+    "<strong>LoRA</strong> dominates PEFT: train low-rank A·B deltas on frozen W, merge back for zero added latency. GPT-3-scale quality with 0.0027% of trainable parameters; rank 4–64 usually suffices; spread across all attention matrices beats concentrating.",
+    "PEFT works because pre-training compresses models to <strong>low intrinsic dimension</strong> — the better the base, the smaller the nudge needed.",
+    "<strong>Multi-LoRA serving</strong> = one shared base + tiny per-task/per-customer adapters: 100 customers in ~23M extra parameters instead of 1.68B. <strong>QLoRA</strong> (4-bit NF4 base) puts 65B finetuning on one 48 GB GPU.",
+    "<strong>Model merging</strong> solves multi-task finetuning without catastrophic forgetting: finetune per-task in parallel, then sum (task arithmetic; prune deltas with TIES/DARE), stack layers (MoE upcycling, model upscaling), or — rarely — concatenate.",
+    "Development paths: <strong>progression</strong> (cheap → mid → best: validate code, then data, then frontier) or <strong>distillation</strong> (strong teacher on small data → generate data → train cheap student).",
+    "Hyperparameter tells: fluctuating loss → learning rate too high; tiny batches unstable → gradient accumulation; validation loss rising → fewer epochs; prompt loss weight ~10%.",
+  ]}
+/>
+
+<References
+  items={[
+    {
+      title: "LoRA: Low-Rank Adaptation of Large Language Models",
+      url: "https://arxiv.org/abs/2106.09685",
+      type: "Paper",
+      source: "Hu et al., 2021 · Microsoft",
+      why: "The paper behind the dominant finetuning technique — readable, and the source of this chapter's which-matrices and rank experiments.",
+    },
+    {
+      title: "QLoRA: Efficient Finetuning of Quantized LLMs",
+      url: "https://arxiv.org/abs/2305.14314",
+      type: "Paper",
+      source: "Dettmers et al., 2023",
+      why: "NF4, double quantization, paged optimizers — the engineering that put 65B-parameter finetuning on a single GPU, explained by its creators.",
+    },
+    {
+      title: "Practical Tips for Finetuning LLMs Using LoRA",
+      url: "https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms",
+      type: "Blog",
+      source: "Sebastian Raschka",
+      why: "Hundreds of experiments distilled into concrete settings — rank, alpha, target modules, QLoRA trade-offs — the empirical companion to this chapter's configuration advice.",
+    },
+    {
+      title: "Transformer Math 101",
+      url: "https://blog.eleuther.ai/transformer-math/",
+      type: "Blog",
+      source: "EleutherAI",
+      why: "The deep version of this chapter's memory-math section: exact formulas for weights, optimizer states, gradients, and activations during training.",
+    },
+    {
+      title: "PEFT documentation",
+      url: "https://huggingface.co/docs/peft",
+      type: "Docs",
+      source: "Hugging Face",
+      why: "The library you'll most likely use — LoRA, prefix tuning, IA3 and more, with working examples for popular base models.",
+    },
+    {
+      title: "mergekit",
+      url: "https://github.com/arcee-ai/mergekit",
+      type: "Tool",
+      source: "Arcee AI",
+      why: "The standard toolkit for this chapter's merging section — SLERP, TIES, DARE, passthrough/frankenmerging — runnable on CPU, no training required.",
+    },
+  ]}
+/>
+
+<KnowledgeCheck
+  chapter="ch07"
+  flashcards={flashcards}
+  quiz={quiz}
+  assignments={assignments}
+/>

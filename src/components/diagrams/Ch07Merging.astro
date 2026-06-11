@@ -1,0 +1,48 @@
+<svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three approaches to model merging">
+  <text x="360" y="30" font-size="14" font-weight="600" text-anchor="middle" fill="var(--ink)">Model merging: one custom model from several — multi-task finetuning without catastrophic forgetting</text>
+
+  <!-- summing -->
+  <rect x="40" y="52" width="205" height="220" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="142" y="78" font-size="13" font-weight="600" text-anchor="middle" fill="var(--ink)">Summing</text>
+  <text x="54" y="100" font-size="10.5" fill="var(--ink-soft)">add weight values together:</text>
+  <text x="54" y="120" font-size="10.5" fill="var(--ink-soft)">· linear combination / averaging</text>
+  <text x="62" y="136" font-size="10.5" fill="var(--ink-soft)">(model soups; federated learning)</text>
+  <text x="54" y="156" font-size="10.5" fill="var(--ink-soft)">· SLERP — interpolate along the</text>
+  <text x="62" y="172" font-size="10.5" fill="var(--ink-soft)">sphere between two task vectors</text>
+  <text x="54" y="192" font-size="10.5" fill="var(--ink-soft)">· task arithmetic: add capabilities,</text>
+  <text x="62" y="208" font-size="10.5" fill="var(--ink-soft)">subtract unwanted behaviors</text>
+  <text x="54" y="228" font-size="10.5" fill="var(--ink-soft)">· prune redundant deltas first</text>
+  <text x="62" y="244" font-size="10.5" fill="var(--ink-soft)">(TIES, DARE) — top 20% suffices</text>
+  <text x="54" y="264" font-size="10.5" font-style="italic" fill="var(--accent-ink)">best for same-base finetunes</text>
+
+  <!-- stacking -->
+  <rect x="258" y="52" width="205" height="220" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="360" y="78" font-size="13" font-weight="600" text-anchor="middle" fill="var(--ink)">Layer stacking</text>
+  <text x="272" y="100" font-size="10.5" fill="var(--ink-soft)">take layers from different models</text>
+  <text x="272" y="116" font-size="10.5" fill="var(--ink-soft)">(“frankenmerging”):</text>
+  <text x="272" y="136" font-size="10.5" fill="var(--ink-soft)">· Goliath-120B from two 70Bs</text>
+  <text x="272" y="156" font-size="10.5" fill="var(--ink-soft)">· sparse upcycling: copy layers +</text>
+  <text x="280" y="172" font-size="10.5" fill="var(--ink-soft)">add router → MoE from a dense model</text>
+  <text x="272" y="192" font-size="10.5" fill="var(--ink-soft)">· model upscaling: depthwise scaling</text>
+  <text x="280" y="208" font-size="10.5" fill="var(--ink-soft)">(48-layer SOLAR from 32 layers)</text>
+  <text x="272" y="232" font-size="10.5" font-style="italic" fill="var(--warn-ink)">usually needs further finetuning</text>
+  <text x="272" y="264" font-size="10.5" font-style="italic" fill="var(--accent-ink)">new architectures possible</text>
+
+  <!-- concatenation -->
+  <rect x="476" y="52" width="205" height="220" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="578" y="78" font-size="13" font-weight="600" text-anchor="middle" fill="var(--ink)">Concatenation</text>
+  <text x="490" y="100" font-size="10.5" fill="var(--ink-soft)">append parameters side by side:</text>
+  <text x="490" y="120" font-size="10.5" fill="var(--ink-soft)">· merged LoRA rank = r₁ + r₂</text>
+  <text x="490" y="140" font-size="10.5" fill="var(--ink-soft)">· total params = sum of all parts</text>
+  <text x="490" y="164" font-size="10.5" font-style="italic" fill="var(--bad-ink)">not recommended — no memory</text>
+  <text x="490" y="180" font-size="10.5" font-style="italic" fill="var(--bad-ink)">savings vs separate serving;</text>
+  <text x="490" y="196" font-size="10.5" font-style="italic" fill="var(--bad-ink)">marginal quality per extra param</text>
+
+  <!-- vs ensembling -->
+  <rect x="40" y="290" width="640" height="64" rx="10" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="58" y="314" font-size="11.5" font-weight="600" fill="var(--ink)">Merging ≠ ensembling</text>
+  <text x="58" y="334" font-size="10.5" fill="var(--ink-soft)">ensembling combines OUTPUTS of intact models (better quality, multiple inference calls per request);</text>
+  <text x="58" y="348" font-size="10.5" fill="var(--ink-soft)">merging mixes PARAMETERS into one model (one inference call, smaller footprint — great for on-device)</text>
+
+  <text x="360" y="386" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Why merge: multi-task without sequential finetuning's catastrophic forgetting · on-device memory · federated learning · no GPU needed.</text>
+</svg>
