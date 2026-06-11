@@ -1,0 +1,232 @@
+---
+number: 3
+title: "Evaluation Methodology"
+shortTitle: "Evaluation Methodology"
+description: "Why evaluation is the biggest hurdle in shipping AI — and the full toolkit for it: language-modeling metrics (perplexity and friends), exact methods like functional correctness and similarity scoring, AI judges with all their power and biases, and comparative ranking à la Chatbot Arena."
+readingTime: 32
+---
+
+import Figure from "../../components/Figure.astro";
+import KeyTakeaways from "../../components/KeyTakeaways.astro";
+import References from "../../components/References.astro";
+import KnowledgeCheck from "../../components/KnowledgeCheck.astro";
+import Ch03EvalMap from "../../components/diagrams/Ch03EvalMap.astro";
+import Ch03Perplexity from "../../components/diagrams/Ch03Perplexity.astro";
+import Ch03Similarity from "../../components/diagrams/Ch03Similarity.astro";
+import Ch03Judge from "../../components/diagrams/Ch03Judge.astro";
+import { flashcards, quiz, assignments } from "../../data/knowledge/ch03";
+
+The more AI gets used, the more catastrophically it can fail — chatbots implicated in tragedies, lawyers sanctioned for citing hallucinated cases, Air Canada ordered to pay damages after its bot gave a passenger false information. Teams adopting AI discover quickly that the biggest hurdle between demo and production is **evaluation** — for some applications it consumes the majority of development effort. (An OpenAI cofounder once quipped that evals are "surprisingly often all you need.")
+
+Yet most teams improvise: word-of-mouth model choices, eyeballed outputs ("vibe checks"), a handful of ad-hoc pet prompts. That works for getting off the ground and fails for iteration. This chapter builds the systematic alternative — and a framing to hold onto throughout: evaluation isn't an isolated activity but part of system design. You first identify where your system is likely to fail, then design evaluation around those places — sometimes redesigning the system itself for visibility into failures.
+
+<Figure num="3.1" caption="The evaluation landscape this chapter covers: exact methods, subjective methods, and comparative ranking.">
+  <Ch03EvalMap />
+</Figure>
+
+## Challenges of Evaluating Foundation Models
+
+Evaluation was always hard in ML. Foundation models make it harder in five distinct ways:
+
+1. **The smarter the model, the harder the grading.** Anyone can check a first-grader's arithmetic; few can check a PhD-level proof. (When a Fields Medalist compared a frontier model to "a mediocre, but not completely incompetent, graduate student," the joke wrote itself: if we already need our brightest minds to evaluate today's models, who grades tomorrow's?) A coherent-sounding summary may require *reading the whole book* to verify — sophisticated tasks turn evaluation into fact-checking, reasoning, and domain expertise.
+2. **Open-endedness breaks ground truth.** Classification has a right answer to compare against. A chatbot prompt has unboundedly many good responses — no exhaustive answer key can exist.
+3. **Black boxes.** Providers hide architecture, data, and training details (and most application developers couldn't act on them anyway), so models can only be judged from the outside, by their outputs.
+4. **Benchmarks saturate fast.** A benchmark is dead once models ace it: GLUE (2018) needed SuperGLUE within a year; NaturalInstructions (2021) → Super-NaturalInstructions (2022); MMLU (2020) → MMLU-Pro (2024).
+5. **The scope itself grew.** Evaluating a task-specific model means measuring the task. Evaluating a general-purpose model also means *discovering* what it can do — including abilities beyond the evaluators'.
+
+The response has been an explosion of research (LLM-evaluation papers grew exponentially through 2023; 50+ dedicated evaluation repos among the top 1,000 AI projects on GitHub) — and yet evaluation still trails the rest of the stack in tooling and investment. DeepMind researchers observed that experiment results are used almost exclusively to improve algorithms, rarely to improve the evaluations themselves; Anthropic has lobbied policymakers to fund evaluation science directly.
+
+## Understanding Language Modeling Metrics
+
+Most foundation models contain a language model, and language-modeling performance correlates well with downstream usefulness — so the four classic metrics are worth understanding even if you never train anything. They're all faces of one idea, and knowing any one (plus bookkeeping details) gives you the others: **cross entropy**, **perplexity**, **bits-per-character**, **bits-per-byte**.
+
+<Figure num="3.2" caption="One concept, four metrics: entropy measures the data, cross entropy measures the model against the data, perplexity exponentiates it into 'effective number of choices'.">
+  <Ch03Perplexity />
+</Figure>
+
+**Entropy** measures how much information each token carries — equivalently, how hard the data is to predict. A toy language whose two tokens specify upper/lower half of a square needs 1 bit per token (entropy 1); a four-token version pinpointing quadrants carries more information per token but needs 2 bits (entropy 2). Less predictable = higher entropy: if I can perfectly predict your next word, your next word tells me nothing.
+
+**Cross entropy** asks the same question about a *model's* predictions on a dataset. It decomposes beautifully: H(P, Q) = H(P) + D<sub>KL</sub>(P‖Q) — the data's inherent entropy plus the KL divergence measuring how far the model's learned distribution Q strays from the true distribution P. Training *is* minimizing this; a perfect learner hits the data's own entropy exactly (KL = 0). One subtlety: cross entropy isn't symmetric — H(P, Q) ≠ H(Q, P).
+
+**BPC and BPB** normalize away tokenizer differences. Bits-per-token isn't comparable across models with different tokenizations, so divide by characters per token (BPC), and — since character encodings also vary (ASCII 7 bits, UTF-8 8–32) — normalize to bytes (BPB). Neat connection: cross entropy measures a model's power as a *text compressor* — a model at 3.43 BPB can squeeze 8-bit bytes into 3.43 bits, less than half the original size.
+
+**Perplexity** is the exponential of cross entropy (2^H in bits; e^H in nats — PyTorch and TensorFlow default to nats, and the bits/nats confusion is precisely why papers prefer reporting perplexity). Interpretation: *the effective number of options the model is choosing between for each next token*. The 2-bit quadrant language has perplexity 4 — four equally likely choices. Real models reach perplexity ~3 against vocabularies of 100,000+, which is the statistical miracle that makes everything else in this book possible.
+
+### Reading and using perplexity
+
+What's "good" depends on the data and setup:
+
+- **More structure → lower perplexity.** HTML is more predictable than prose (you can see `</head>` coming).
+- **Bigger vocabulary → higher perplexity.** More options per slot; children's books score lower than *War and Peace*, character-level beats word-level.
+- **More context → lower perplexity.** Shannon conditioned on 10 previous tokens in 1951; today's models condition on 500–10,000+.
+
+Beyond training, perplexity earns its keep in the engineering workflow: as a **capability proxy** (GPT-2's report shows larger models scoring consistently lower across datasets — though providers increasingly hide these numbers); as a **contamination detector** (a model with suspiciously low perplexity on a benchmark probably trained on it — discount its score); for **data dedup** (only add new data whose perplexity is high — i.e., genuinely new); and for **anomaly detection** (unusual claims and gibberish score very high).
+
+Two big caveats. **Post-training breaks the proxy**: a model optimized to complete tasks gets *worse* at raw next-token prediction — perplexity typically rises after SFT/RLHF ("post-training collapses entropy"), so don't compare post-trained models on it. And **quantization** can shift perplexity in unexpected ways. Computing perplexity yourself also requires token-level logprobs, which many providers don't expose.
+
+## Exact Evaluation
+
+A crucial distinction runs through everything that follows: **exact** evaluation produces unambiguous judgments (multiple-choice answer is A; you said B; wrong), while **subjective** evaluation depends on the judge (essay grades vary by grader — and AI judges vary by model and prompt). Two exact approaches matter most for open-ended outputs.
+
+### Functional correctness
+
+Does the output *do its job*? The website renders and meets the spec; the reservation actually got made. Functional correctness is the ultimate metric — and where it can be automated, it's gold:
+
+- **Code generation** inherits decades of software practice: run the unit tests. Benchmarks like OpenAI's HumanEval and Google's MBPP attach test cases to each problem; text-to-SQL benchmarks (Spider, BIRD-SQL, WikiSQL) execute the generated queries. The standard score is **pass@k**: generate k samples per problem, count a problem solved if *any* passes all tests, report the solved fraction. More attempts help, so pass@1 ≤ pass@3 ≤ pass@10 — always check which k a claim uses.
+- **Measurable objectives** generally: a Tetris bot's score, energy saved by an AI scheduler. (Subtle catch: when AI does only *part* of a task, grading the part can be harder than grading the whole — evaluating one chess move is harder than seeing who won.)
+
+### Similarity measurements against reference data
+
+When correctness can't be executed, compare outputs to **reference responses** (a.k.a. ground truths / canonical responses) — translation against known-good translations, etc. The reference data follows (input, reference response(s)) — and immediately becomes the bottleneck: humans generate it slowly and expensively (using human references means treating human performance as the gold standard); increasingly AI generates it with lighter human review. Metrics needing references are **reference-based**; others **reference-free**.
+
+<Figure num="3.3" caption="Three rungs of similarity: identical text, similar-looking text, similar-meaning text — each catching cases the previous one misses.">
+  <Ch03Similarity />
+</Figure>
+
+Three hand-designed measurement families (a fourth option — asking an evaluator — is the next section's topic):
+
+**Exact match** works for short, single-answer tasks ("What's 2+3?", trivia, fill-in-the-blank). Variants accept any output *containing* the reference — which backfires: "September 12, 1929" contains the correct birth year 1929 while being factually wrong. Beyond simple tasks it collapses: "Comment ça va?" has many valid translations, and no reference set lists them all.
+
+**Lexical similarity** measures surface overlap: shared-token counting, **fuzzy matching** (edit distance — deletions, insertions, substitutions), and **n-gram overlap** (shared word sequences). The classic metrics — BLEU, ROUGE, METEOR++, TER, CIDEr — ruled the translation era but are fading with foundation models, for documented reasons: you need comprehensive references (Adept's Fuyu lost points for *correct* image captions that just weren't in the reference set); references themselves are often wrong (WMT 2023's organizers found many bad reference translations — one reason reference-free metrics now rival reference-based ones in human-correlation); and looking similar isn't being right — OpenAI found BLEU scores of correct and incorrect HumanEval solutions nearly indistinguishable.
+
+**Semantic similarity** compares *meaning*: embed both texts, compute **cosine similarity** (1 = same direction, –1 = opposite; from the dot product normalized by vector lengths). "What's up?" and "How are you?" score high semantically despite zero lexical overlap — while "Let's eat, grandma" and "Let's eat grandma" expose lexical metrics in the other direction. Metrics include BERTScore (BERT embeddings) and MoverScore (mixed). It needs far fewer references than lexical matching, but inherits the embedding model's flaws — bad embeddings, bad scores — and costs real compute. (Classified as "exact" because *given* two embeddings, the score is deterministic; the embedding choice itself injects subjectivity.)
+
+<div class="note">
+<span class="aside-label">Embeddings, briefly</span>
+
+An **embedding** is a vector (typically 100–10,000 numbers) aiming to capture data's meaning — "the cat sits on a mat" → `[0.11, 0.02, 0.54, …]`. Dedicated embedding models include BERT (768–1024 dims), Sentence Transformers, CLIP (512), OpenAI's text-embedding-3 (1536–3072), and Cohere Embed v3. A good embedding model puts similar things close together — and is ultimately judged by usefulness in downstream tasks (search, classification, RAG, recommendations; the MTEB benchmark covers the spread). Any modality embeds — products, images, graphs, users — and **joint multimodal spaces** are the frontier: CLIP trains a text encoder and an image encoder so images land near their captions in one shared space (enabling text-to-image search); ULIP adds 3D point clouds; ImageBind spans six modalities. Embeddings return in Chapter 6 (vector search) and Chapter 8 (dedup).
+
+</div>
+
+## AI as a Judge
+
+If humans are too slow and references too scarce, can AI evaluate AI? **AI as a judge** — using a model (an *AI judge*) to score outputs — became practical around GPT-3 (2020) and is now arguably the most common production evaluation method: in LangChain's 2023 platform data, 58% of evaluations were AI-judged.
+
+### Why it works
+
+AI judges are fast, cheap (relative to humans), and **reference-free** — usable in production where ground truth doesn't exist. They score any criterion you can articulate — correctness, toxicity, hallucination, "does this sound like Gandalf?" — and *explain their judgments*, which makes audits possible. The correlation evidence is strong: GPT-4 agreed with humans on MT-Bench **85%** of the time — *higher than humans agreed with each other* (81%); AlpacaEval's judges correlate 0.98 with the human-voted Chatbot Arena leaderboard. And even when judges trail human quality, they're often good enough to steer development. The intuition for why this isn't absurd: a model is an aggregation of the masses — with the right prompt, its judgment approximates crowd judgment.
+
+### How to build one
+
+<Figure num="3.4" caption="A judge is model + prompt + sampling settings — and its biases are measurable, so measure them.">
+  <Ch03Judge />
+</Figure>
+
+Three standard patterns: judge a response **by itself** given the question; judge it **against a reference** (a learned alternative to similarity metrics); or judge **between two responses** (which feeds preference data for alignment, test-time compute, and rankings).
+
+A good judge prompt specifies three things: the **task**, the **criteria** in detail (more detail = better), and the **scoring system**. Hard-won guidance on that last one: language models handle text better than numbers — **classification beats numeric scoring**; among numeric schemes **discrete beats continuous**; wider ranges degrade quality (1–5 is the sweet spot); and **examples of each score with reasons** measurably help (Azure AI Studio's relevance prompt does exactly this).
+
+The definitional point that everything else hangs on: **an AI judge is a system** — model + prompt + sampling settings. Change any piece and you have a *different judge*.
+
+### Limitations
+
+Skeptics aren't wrong that AI-evaluating-AI smells circular. The concrete issues:
+
+- **Inconsistency.** Judges are probabilistic; the same judge can score the same input differently across runs. Adding examples to the prompt raised GPT-4's consistency from 65% to 77.5% in one study — while quadrupling cost, and with the authors' caveat that *consistent* doesn't mean *correct* (a judge can consistently make the same mistake).
+- **Criteria ambiguity.** "Faithfulness" in MLflow is scored 1–5, in Ragas 0/1, in LlamaIndex YES/NO — same word, three incomparable metrics. Worse, judges drift: if this month's coherence is 92% versus last month's 90%, did your app improve, or did someone tweak the judge's prompt? (Especially treacherous when separate teams own the app and the judge.) The book's rule, worth engraving: **don't trust any AI judge whose model and prompt you can't see.**
+- **Cost and latency.** Judging doubles your API calls; three criteria quintuple them — sometimes evaluation outspends generation. Mitigations: weaker judge models, and **spot-checking** a sample of responses (trading confidence for cost — Chapter 4 returns to this balance). In-pipeline judging as a guardrail adds latency to every response.
+- **Biases**, all measurable: **self-bias** (GPT-4 favors its own outputs by ~10% win rate; Claude-v1 by ~25%); **first-position bias** (favoring option A — opposite of humans' recency bias; mitigate by order-swapping); **verbosity bias** (preferring a longer answer *with factual errors* over a shorter correct one — though GPT-4 shows less of this than GPT-3.5, hinting it fades with capability). Plus the standard AI caveats: sending data to a proprietary judge raises privacy and IP questions.
+
+The pragmatic stance: adoption keeps growing because the advantages are real — but supplement judges with exact evaluation and/or human review.
+
+### What models can act as judges?
+
+A judge can be stronger, equal, or weaker than the judged model — each defensible:
+
+- **Stronger**: best human-correlation; also expensive — a common pattern is a cheap model generating everything while the strong judge spot-checks 1%, or runs asynchronously in the background flagging bad responses for remediation (the reverse — strong generator, fast weak judge — is also common). Two structural problems: the strongest model has no eligible judge, and you need some *other* method to know which model is strongest.
+- **Itself** (*self-evaluation / self-critique*): sounds like cheating given self-bias, but works as a sanity check — and asking a model to critique its own answer often gets it to catch and fix mistakes (the "10+3=30 → wait, no, 13" pattern).
+- **Weaker**: judging is plausibly easier than generating — everyone has opinions about songs; few write them. The exciting direction here is **small specialized judges**, trained for one judgment with fixed criteria and scoring — more reliable at their specialty than general giants, in three flavors:
+  - **Reward models** — score (prompt, response); e.g. Google's Cappy, just 360M parameters.
+  - **Reference-based judges** — score a candidate against references; e.g. BLEURT (similarity), Prometheus (1–5 quality given a rubric, assuming the reference is a 5).
+  - **Preference models** — predict which of two responses users prefer; e.g. PandaLM, JudgeLM. Predicting human preference well would make alignment data cheap and evaluation easier across the board — one of the most consequential open problems.
+
+## Ranking Models with Comparative Evaluation
+
+Often you don't want scores; you want to know *which model to pick*. Two routes: **pointwise** evaluation (score each model independently, sort) and **comparative** evaluation (head-to-head matches, then compute a ranking) — like judging dancers one at a time with scorecards versus watching them side by side and picking favorites. For subjective qualities, comparing is fundamentally easier than absolute scoring — the same insight that made preference data the currency of post-training (Chapter 2).
+
+The mechanics: each **match** pits two models on one prompt; an evaluator (human or AI) picks a winner (ties usually allowed); a **rating algorithm** converts match history into per-model scores and a ranking. The algorithms are imports from chess and gaming — **Elo**, **Bradley–Terry**, **TrueSkill**. LMSYS's **Chatbot Arena** — the most visible example, where the public votes on anonymous model pairs (names revealed only after voting) — started with Elo, then switched to Bradley–Terry after finding Elo sensitive to evaluator and prompt ordering. Production apps do this too: ChatGPT sometimes shows two responses side by side and asks which you prefer. (Don't confuse this with A/B testing — A/B users see *one* candidate's output; comparative evaluators see several at once.)
+
+What makes a ranking *correct*? Treat it as a prediction problem: a good ranking predicts future matches — if A ranks above B, users should prefer A more than half the time. There's no ground-truth ranking, only predictive quality.
+
+### Challenges
+
+**Scalability.** Model pairs grow quadratically: LMSYS's 244K comparisons across 57 models averaged just 153 matches per pair — thin coverage for general-purpose models. Rating algorithms compensate by assuming **transitivity** (A>B, B>C ⇒ A>C), but several analyses question whether transitivity holds for AI — human preference isn't necessarily transitive, and different pairs get different evaluators and prompts. New models are awkward (each addition requires matches against the field and can reshuffle existing ranks), and **private models** are worse — to compare your in-house model, you must collect your own comparative signals or pay for private evaluation. Smarter **matching algorithms** help: stop scheduling matches for pairs whose outcome is already certain; sample the matches that reduce ranking uncertainty most.
+
+**Standardization and quality control.** Crowdsourcing captures preference "in the wild" and is hard to game — but the wild is messy. Among 33K published Arena prompts, ~0.55% were variants of "hello"; one brainteaser appeared 44 times — trivial prompts can't differentiate models and pollute rankings (LMSYS now filters to hard prompts using an internal model). Volunteers don't fact-check, so plausible-but-wrong can beat correct. Preference itself is double-edged: some users *want* unfiltered responses and downvote refusals an application developer would prefer; a few might maliciously upvote toxic outputs. And crucially, **not every question should be answered by preference**: "is there a link between cell phone radiation and brain tumors?" has a correct answer — preference votes on it generate misaligned training signal. Preference voting works where users are competent to judge — AI as an assistant for tasks they understand, not an oracle for ones they don't (if you knew the answer, you wouldn't have asked). Alternatives each pay a price: predetermined prompts (loses diversity), trained evaluators à la Scale's private leaderboard (expensive, fewer comparisons), in-product comparisons (users may click randomly — though a small fraction of careful voters can carry the signal), or AI evaluators (less expert than trained humans, more reliable than random internet strangers).
+
+**Relative ≠ absolute.** A ranking can't tell you whether a model is *good enough*. "B beats A 51% of the time" is consistent with both being great or both terrible — and if A resolves 70% of your support tickets, nobody can tell you B's resolution rate from its win rate (practitioners report 1% win-rate gains meaning everything in one app and nothing in another). If B also costs twice as much, comparative signals alone can't justify the swap. You need absolute evaluation alongside.
+
+### Why it persists anyway
+
+Comparative evaluation has properties nothing else offers. As models surpass human ability, humans who can't *score* a response can often still *compare* two (Llama 2's team found exactly this at the frontier of their annotators' skill). It measures the thing we actually care about — human preference — without the treadmill of designing ever-harder benchmarks: rankings never saturate as long as better models keep arriving. And it's hard to game — there's no reference data to train on. That's why public comparative leaderboards command more trust than any static benchmark, and why this approach complements offline benchmarks and online A/B tests rather than replacing them.
+
+<KeyTakeaways
+  items={[
+    "Evaluation is the bottleneck of AI engineering — and 'vibe checks' don't survive contact with iteration. Design evaluation around <strong>where your system is likely to fail</strong>, not around what's easy to measure.",
+    "Foundation models break old evaluation: graders need expertise, open-ended outputs have no answer key, models are black boxes, benchmarks saturate within a year or two, and evaluation now includes <strong>discovering</strong> capabilities.",
+    "One concept, four metrics: entropy (data's predictability), cross entropy (model vs data = entropy + KL), BPC/BPB (tokenizer-normalized), perplexity (2^H — 'effective choices per token').",
+    "Perplexity is a capability proxy, a <strong>contamination detector</strong>, a dedup tool, and an anomaly detector — but it stops being meaningful after post-training, which trades next-token accuracy for task ability.",
+    "<strong>Functional correctness</strong> is the gold standard wherever outputs can be executed: unit tests, pass@k, SQL execution, game scores. Always check the k in pass@k claims.",
+    "Similarity-to-reference comes in three rungs — exact match, lexical (BLEU/ROUGE; surface overlap), semantic (embedding cosine; meaning) — and all are hostage to reference completeness and correctness.",
+    "<strong>AI as a judge</strong> is now the workhorse: fast, cheap, reference-free, explainable, with human-agreement rivaling humans themselves (GPT-4 × MT-Bench: 85% vs humans' 81%).",
+    "A judge = <strong>model + prompt + sampling</strong>. Different tools' same-named criteria aren't comparable; judges drift over time; never trust a judge whose model and prompt you can't inspect.",
+    "Judge biases are real and measurable: self-bias, first-position bias (swap orders!), verbosity bias. Prefer classification over numbers, discrete 1–5 over wide/continuous scales, and worked examples in the prompt.",
+    "Small <strong>specialized judges</strong> — reward models, reference-based judges, preference models — can beat giant general-purpose judges at their one job, cheaply.",
+    "Comparative evaluation (Chatbot Arena-style) ranks models via pairwise matches + rating algorithms (Elo, Bradley–Terry). It never saturates, is hard to game, and works even past the point where humans can score absolutely.",
+    "But rankings are <strong>relative</strong>: a 51% win rate says nothing about whether either model is good enough, or what business lift to expect — pair comparative signals with absolute evaluation before swapping models.",
+  ]}
+/>
+
+<References
+  items={[
+    {
+      title: "Your AI Product Needs Evals",
+      url: "https://hamel.dev/blog/posts/evals/",
+      type: "Blog",
+      source: "Hamel Husain",
+      why: "The practitioner's companion to this chapter — how to actually wire unit tests, LLM judges, and human review into a working eval loop, with case-study detail.",
+    },
+    {
+      title: "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+      url: "https://arxiv.org/abs/2306.05685",
+      type: "Paper",
+      source: "Zheng et al., 2023",
+      why: "The paper behind this chapter's key numbers — the 85% agreement result, and the cleanest documentation of position, verbosity, and self-bias.",
+    },
+    {
+      title: "Task-Specific LLM Evals that Do & Don't Work",
+      url: "https://eugeneyan.com/writing/evals/",
+      type: "Blog",
+      source: "Eugene Yan",
+      why: "Brutally practical survey of which eval metrics hold up for classification, summarization, translation, and copyright — with code and thresholds.",
+    },
+    {
+      title: "LMSYS Chatbot Arena",
+      url: "https://lmarena.ai/",
+      type: "Tool",
+      source: "LMSYS / LMArena",
+      why: "Comparative evaluation live: vote on anonymous model pairs yourself and watch the Bradley–Terry leaderboard move. The fastest way to internalize this chapter's last section.",
+    },
+    {
+      title: "The LLM Evaluation Guidebook",
+      url: "https://github.com/huggingface/evaluation-guidebook",
+      type: "Docs",
+      source: "Hugging Face",
+      why: "A maintained, soup-to-nuts reference on automatic benchmarks, human evaluation, and LLM judges — great for going deeper on any single method here.",
+    },
+    {
+      title: "MTEB: Massive Text Embedding Benchmark",
+      url: "https://huggingface.co/spaces/mteb/leaderboard",
+      type: "Tool",
+      source: "Hugging Face",
+      why: "When the embedding aside sends you shopping for an embedding model, this leaderboard is where to comparison-shop across retrieval, clustering, and classification tasks.",
+    },
+  ]}
+/>
+
+<KnowledgeCheck
+  chapter="ch03"
+  flashcards={flashcards}
+  quiz={quiz}
+  assignments={assignments}
+/>

@@ -1,0 +1,56 @@
+<svg viewBox="0 0 720 410" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Anatomy of an AI judge and its biases">
+  <defs>
+    <marker id="ch03jd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-faint)" />
+    </marker>
+  </defs>
+
+  <!-- judge box -->
+  <rect x="40" y="20" width="400" height="190" rx="12" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="60" y="48" font-size="14.5" font-weight="600" fill="var(--ink)">An AI judge is a SYSTEM, not a model:</text>
+
+  <rect x="60" y="64" width="170" height="40" rx="8" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="145" y="88" font-size="12" text-anchor="middle" fill="var(--ink)">judge model</text>
+
+  <rect x="250" y="64" width="170" height="40" rx="8" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="335" y="88" font-size="12" text-anchor="middle" fill="var(--ink)">sampling settings</text>
+
+  <rect x="60" y="116" width="360" height="78" rx="8" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="240" y="138" font-size="12" font-weight="600" text-anchor="middle" fill="var(--ink)">judge prompt</text>
+  <text x="76" y="158" font-size="10.5" fill="var(--ink-soft)">1 · the task (“score relevance of answer to question”)</text>
+  <text x="76" y="173" font-size="10.5" fill="var(--ink-soft)">2 · detailed criteria (the more detailed, the better)</text>
+  <text x="76" y="188" font-size="10.5" fill="var(--ink-soft)">3 · scoring system + scored examples (classification &gt; numbers)</text>
+
+  <!-- output -->
+  <line x1="440" y1="115" x2="494" y2="115" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch03jd-arrow)" />
+  <rect x="500" y="80" width="190" height="70" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+  <text x="595" y="106" font-size="13" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">score + explanation</text>
+  <text x="595" y="126" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">change model, prompt, or</text>
+  <text x="595" y="140" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">sampling → different judge!</text>
+
+  <!-- biases -->
+  <text x="40" y="252" font-size="13.5" font-weight="600" fill="var(--ink)">Known biases to design around:</text>
+
+  <g font-size="11">
+    <rect x="40" y="266" width="208" height="78" rx="8" fill="var(--bg-raised)" stroke="var(--line)" />
+    <text x="144" y="288" font-weight="600" text-anchor="middle" fill="var(--ink)">Self-bias</text>
+    <text x="144" y="306" text-anchor="middle" fill="var(--ink-soft)">favors its own outputs —</text>
+    <text x="144" y="321" text-anchor="middle" fill="var(--ink-soft)">GPT-4: +10% win rate for itself,</text>
+    <text x="144" y="336" text-anchor="middle" fill="var(--ink-soft)">Claude-v1: +25%</text>
+
+    <rect x="256" y="266" width="208" height="78" rx="8" fill="var(--bg-raised)" stroke="var(--line)" />
+    <text x="360" y="288" font-weight="600" text-anchor="middle" fill="var(--ink)">First-position bias</text>
+    <text x="360" y="306" text-anchor="middle" fill="var(--ink-soft)">prefers option A in pairs</text>
+    <text x="360" y="321" text-anchor="middle" fill="var(--ink-soft)">(humans skew the other way) —</text>
+    <text x="360" y="336" text-anchor="middle" fill="var(--ink-soft)">mitigate by swapping the order</text>
+
+    <rect x="472" y="266" width="208" height="78" rx="8" fill="var(--bg-raised)" stroke="var(--line)" />
+    <text x="576" y="288" font-weight="600" text-anchor="middle" fill="var(--ink)">Verbosity bias</text>
+    <text x="576" y="306" text-anchor="middle" fill="var(--ink-soft)">long beats short, even when</text>
+    <text x="576" y="321" text-anchor="middle" fill="var(--ink-soft)">the long one has factual errors —</text>
+    <text x="576" y="336" text-anchor="middle" fill="var(--ink-soft)">weaker in stronger models</text>
+  </g>
+
+  <text x="360" y="382" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Golden rule: never trust a judge whose model AND prompt you can’t see —</text>
+  <text x="360" y="400" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">scores from different judges (or different versions of one judge) are not comparable.</text>
+</svg>

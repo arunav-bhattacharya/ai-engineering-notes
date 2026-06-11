@@ -1,0 +1,68 @@
+<svg viewBox="0 0 720 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Map of evaluation approaches for open-ended AI">
+  <defs>
+    <marker id="ch03map-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-faint)" />
+    </marker>
+  </defs>
+
+  <!-- root -->
+  <rect x="235" y="16" width="250" height="46" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5" />
+  <text x="360" y="44" font-size="14.5" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">Evaluating open-ended responses</text>
+
+  <!-- branches -->
+  <line x1="360" y1="62" x2="360" y2="80" stroke="var(--ink-faint)" stroke-width="1.5" />
+  <line x1="130" y1="80" x2="590" y2="80" stroke="var(--ink-faint)" stroke-width="1.5" />
+  <line x1="130" y1="80" x2="130" y2="100" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch03map-arrow)" />
+  <line x1="360" y1="80" x2="360" y2="100" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch03map-arrow)" />
+  <line x1="590" y1="80" x2="590" y2="100" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch03map-arrow)" />
+
+  <!-- exact column -->
+  <rect x="30" y="104" width="200" height="44" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="130" y="124" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--ink)">Exact evaluation</text>
+  <text x="130" y="140" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">unambiguous judgment</text>
+
+  <rect x="30" y="166" width="200" height="58" rx="8" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="130" y="188" font-size="12" font-weight="600" text-anchor="middle" fill="var(--ink)">Functional correctness</text>
+  <text x="130" y="206" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">does it work? unit tests, pass@k,</text>
+  <text x="130" y="219" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">game scores, energy saved</text>
+
+  <rect x="30" y="240" width="200" height="118" rx="8" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="130" y="262" font-size="12" font-weight="600" text-anchor="middle" fill="var(--ink)">Similarity to references</text>
+  <text x="44" y="284" font-size="10.5" fill="var(--ink-soft)">· exact match — short answers only</text>
+  <text x="44" y="302" font-size="10.5" fill="var(--ink-soft)">· lexical — token overlap, edit distance,</text>
+  <text x="52" y="316" font-size="10.5" fill="var(--ink-soft)">n-grams (BLEU, ROUGE)</text>
+  <text x="44" y="334" font-size="10.5" fill="var(--ink-soft)">· semantic — embedding cosine</text>
+  <text x="52" y="348" font-size="10.5" fill="var(--ink-soft)">similarity (BERTScore)</text>
+
+  <!-- subjective column -->
+  <rect x="260" y="104" width="200" height="44" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="360" y="124" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--ink)">Subjective evaluation</text>
+  <text x="360" y="140" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">depends on the judge</text>
+
+  <rect x="260" y="166" width="200" height="100" rx="8" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="360" y="188" font-size="12" font-weight="600" text-anchor="middle" fill="var(--ink)">AI as a judge</text>
+  <text x="274" y="210" font-size="10.5" fill="var(--ink-soft)">· judge alone / vs reference / pairwise</text>
+  <text x="274" y="228" font-size="10.5" fill="var(--ink-soft)">· any criteria, explains itself</text>
+  <text x="274" y="246" font-size="10.5" fill="var(--ink-soft)">· judge = model + prompt + sampling</text>
+
+  <rect x="260" y="282" width="200" height="76" rx="8" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="360" y="304" font-size="12" font-weight="600" text-anchor="middle" fill="var(--ink)">Human evaluation</text>
+  <text x="274" y="326" font-size="10.5" fill="var(--ink-soft)">· gold standard, slow, expensive</text>
+  <text x="274" y="344" font-size="10.5" fill="var(--ink-soft)">· still essential for sanity checks</text>
+
+  <!-- comparative column -->
+  <rect x="490" y="104" width="200" height="44" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="590" y="124" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--ink)">Comparative evaluation</text>
+  <text x="590" y="140" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">which model is better?</text>
+
+  <rect x="490" y="166" width="200" height="120" rx="8" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="590" y="188" font-size="12" font-weight="600" text-anchor="middle" fill="var(--ink)">Pairwise matches → ranking</text>
+  <text x="504" y="210" font-size="10.5" fill="var(--ink-soft)">· evaluators pick winners per match</text>
+  <text x="504" y="228" font-size="10.5" fill="var(--ink-soft)">· rating algorithm computes scores</text>
+  <text x="512" y="242" font-size="10.5" fill="var(--ink-soft)">(Elo, Bradley–Terry, TrueSkill)</text>
+  <text x="504" y="260" font-size="10.5" fill="var(--ink-soft)">· e.g. Chatbot Arena</text>
+  <text x="504" y="278" font-size="10.5" fill="var(--ink-soft)">· relative, not absolute, quality</text>
+
+  <text x="360" y="400" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Exact methods produce the same score every time; subjective scores move when the judge moves.</text>
+  <text x="360" y="420" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Production systems usually combine several of these.</text>
+</svg>

@@ -18,7 +18,7 @@ commit per completed chapter.
 ## Phase B — Content (per chapter: MDX all sections · diagrams · takeaways · researched references · flashcards/quiz/assignments · build green · commit)
 - [x] Chapter 1 — Introduction (template validator) · diagrams 1.1/1.2 visually verified; 1.3/1.4 re-check in Phase C
 - [x] Chapter 2 — Understanding Foundation Models
-- [ ] Chapter 3 — Evaluation Methodology
+- [x] Chapter 3 — Evaluation Methodology
 - [ ] Chapter 4 — Evaluate AI Systems
 - [ ] Chapter 5 — Prompt Engineering
 - [ ] Chapter 6 — RAG and Agents
