@@ -20,7 +20,9 @@ const totalMinutes = chapters.reduce((sum, c) => sum + c.data.readingTime, 0);
     <main class="content">
       <div class="prose">
         <p class="kicker">Field notes · {chapters.length} chapters · ~{Math.round(totalMinutes / 60)}h total</p>
-        <h1>AI Engineering, distilled chapter by chapter</h1>
+        <h1>
+          AI Engineering, <span class="hero-em">distilled chapter by chapter</span>
+        </h1>
         <p class="lede">
           Study notes on <em>AI Engineering: Building Applications with
           Foundation Models</em> by Chip Huyen — every chapter explained from
@@ -148,6 +150,10 @@ const totalMinutes = chapters.reduce((sum, c) => sum + c.data.readingTime, 0);
 </Base>
 
 <style>
+  .hero-em {
+    font-style: italic;
+    color: var(--accent);
+  }
   .home-actions {
     display: flex;
     gap: 0.7rem;
