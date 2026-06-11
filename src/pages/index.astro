@@ -156,8 +156,10 @@ const totalMinutes = chapters.reduce((sum, c) => sum + c.data.readingTime, 0);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    padding-right: 0.08em;
-    margin-right: -0.08em;
+    padding-right: 0.12em;
+    margin-right: -0.12em;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
   .home-actions {
     display: flex;
