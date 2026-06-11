@@ -1,0 +1,45 @@
+<svg viewBox="0 0 720 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Taxonomy of conversational user feedback">
+  <rect x="210" y="16" width="300" height="44" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+  <text x="360" y="43" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">Conversational feedback</text>
+
+  <line x1="360" y1="60" x2="360" y2="76" stroke="var(--ink-faint)" stroke-width="1.5" />
+  <line x1="195" y1="76" x2="525" y2="76" stroke="var(--ink-faint)" stroke-width="1.5" />
+  <line x1="195" y1="76" x2="195" y2="92" stroke="var(--ink-faint)" stroke-width="1.5" />
+  <line x1="525" y1="76" x2="525" y2="92" stroke="var(--ink-faint)" stroke-width="1.5" />
+
+  <!-- natural language -->
+  <rect x="40" y="96" width="310" height="200" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="195" y="122" font-size="12.5" font-weight="600" text-anchor="middle" fill="var(--ink)">From message CONTENT</text>
+  <g font-size="10.5">
+    <text x="56" y="146" fill="var(--ink-soft)">· early termination — stopping generation, leaving</text>
+    <text x="56" y="166" fill="var(--ink-soft)">· error correction — “No, …”, “I meant …”, rephrasing,</text>
+    <text x="64" y="182" fill="var(--ink-soft)">direct edits (each edit = a preference pair!)</text>
+    <text x="56" y="202" fill="var(--ink-soft)">· confirmation requests — “Are you sure?” = distrust</text>
+    <text x="56" y="222" fill="var(--ink-soft)">· complaints — wrong, irrelevant, verbose, vague</text>
+    <text x="64" y="238" fill="var(--ink-soft)">(the largest clusters in real feedback datasets)</text>
+    <text x="56" y="258" fill="var(--ink-soft)">· sentiment trajectory — angry → happy = resolved</text>
+    <text x="56" y="278" fill="var(--ink-soft)">· model refusal rate — “As a language model, I can't…”</text>
+  </g>
+
+  <!-- actions -->
+  <rect x="370" y="96" width="310" height="200" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="525" y="122" font-size="12.5" font-weight="600" text-anchor="middle" fill="var(--ink)">From user ACTIONS</text>
+  <g font-size="10.5">
+    <text x="386" y="146" fill="var(--ink-soft)">· regeneration — dissatisfaction, or just exploring</text>
+    <text x="394" y="162" fill="var(--ink-soft)">(stronger signal under usage-based billing)</text>
+    <text x="386" y="182" fill="var(--ink-soft)">· conversation organization — delete (bad), rename</text>
+    <text x="394" y="198" fill="var(--ink-soft)">(good convo, bad title), share, bookmark</text>
+    <text x="386" y="218" fill="var(--ink-soft)">· conversation length — positive for companions,</text>
+    <text x="394" y="234" fill="var(--ink-soft)">negative for support bots</text>
+    <text x="386" y="254" fill="var(--ink-soft)">· dialogue diversity — long + repetitive = stuck loop</text>
+    <text x="386" y="278" fill="var(--ink-soft)">· accept/ignore suggestions (Copilot's Tab key)</text>
+  </g>
+
+  <!-- explicit vs implicit -->
+  <rect x="40" y="312" width="640" height="62" rx="10" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="58" y="336" font-size="11.5" font-weight="600" fill="var(--ink)">Explicit (thumbs, stars, “did we solve it?”) vs implicit (everything above)</text>
+  <text x="58" y="356" font-size="10.5" fill="var(--ink-soft)">explicit: easy to interpret, sparse, response-biased · implicit: abundant, noisy — study WHY your users take each action</text>
+
+  <text x="360" y="408" font-size="11.5" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Collect at the right moments: onboarding calibration · when something fails · when the model is uncertain (side-by-side).</text>
+  <text x="360" y="428" font-size="11.5" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Design rules: nonintrusive, easy to ignore, never demand the impossible — and decide whether signals are public or private.</text>
+</svg>

@@ -1,0 +1,184 @@
+---
+number: 10
+title: "AI Engineering Architecture and User Feedback"
+shortTitle: "Architecture & User Feedback"
+description: "Putting it all together: the five-step evolution from query-to-model to a full production architecture (guardrails, routers, gateways, caches, agent patterns), the observability that keeps it honest — and the art of extracting, designing for, and not being fooled by user feedback."
+readingTime: 30
+---
+
+import Figure from "../../components/Figure.astro";
+import KeyTakeaways from "../../components/KeyTakeaways.astro";
+import References from "../../components/References.astro";
+import KnowledgeCheck from "../../components/KnowledgeCheck.astro";
+import Ch10Architecture from "../../components/diagrams/Ch10Architecture.astro";
+import Ch10Observability from "../../components/diagrams/Ch10Observability.astro";
+import Ch10Feedback from "../../components/diagrams/Ch10Feedback.astro";
+import Ch10Biases from "../../components/diagrams/Ch10Biases.astro";
+import { flashcards, quiz, assignments } from "../../data/knowledge/ch10";
+
+Every previous chapter examined one piece; this one assembles the whole machine. It builds a production architecture step by step — starting from the simplest possible setup and adding components only as challenges demand — then turns to the resource that ultimately decides whether any of it works: **user feedback**, which in AI products is not just product input but *training data*, the fuel of the data flywheel.
+
+## AI Engineering Architecture
+
+The starting point couldn't be simpler: **query → model API → response** (the API being a third-party service or your own inference server). No context, no guardrails, no optimization. Every addition below earns its place by solving a real problem — and the order here reflects what teams commonly do in production, though your needs may reorder it.
+
+<Figure num="10.1" caption="The assembled architecture, with numbers marking the order components typically arrive. Observability spans everything.">
+  <Ch10Architecture />
+</Figure>
+
+### Step 1: Enhance context
+
+The first expansion is almost always **context construction** — retrieval (text, image, tabular) and tools (web search, news, weather APIs) from Chapter 6. It's feature engineering for foundation models, and so central that every major provider supports it — *differently*: document limits, retrieval algorithms, chunking configs, tool types, parallel function execution, long-running jobs. Compare carefully.
+
+### Step 2: Put in guardrails
+
+Guardrails go wherever exposure exists — around inputs and outputs.
+
+**Input guardrails** target two risks: *leaking private data to external APIs* (an employee pastes secrets into a prompt; the system prompt embeds internal policies; a tool retrieves private records into context) and *executing harmful prompts* (Chapter 5's whole catalog). For leaks, sensitive-data detectors (often AI-powered — does this string look like a home address?) either block the query or **mask** it: the phone number becomes `[PHONE NUMBER]`, and a reverse PII map restores it if the placeholder surfaces in the response.
+
+**Output guardrails** do two jobs — catch failures, and define what happens next. Failure taxonomy: *quality* (empty responses, malformed JSON, hallucinations, just-plain-bad essays) and *security* (toxicity, leaked sensitive data, triggered code/tool execution, brand-damaging statements). Handling policies lean on the probabilistic nature of models: **retry** on failure (same query, new dice roll) — and since sequential retries double latency, consider *parallel* calls, picking the better response. **Human fallback** handles the rest: route on trigger phrases, on detected anger (a sentiment model), or after too many turns.
+
+Implementation realities: guardrails trade **reliability against latency** (some teams, eyes open, skip them for speed); they fight with **streaming** (partial responses are hard to judge — unsafe tokens may reach users first, with retroactive removal as the fallback); and their placement depends on hosting (third-party APIs bundle many output protections; self-hosting removes the need for some input protections since data stays home). Off-the-shelf options abound, and track the **false refusal rate** alongside violations — a system that blocks everything is perfectly safe and perfectly useless.
+
+### Step 3: Add model router and gateway
+
+Multiple models need management. A **router** — typically an *intent classifier* — sends each query to the right solution: specialized models for billing vs troubleshooting, cheap models for simple queries, the FAQ page for password resets, humans for delicate corrections, and a stock polite refusal for out-of-scope asks (no API call wasted on "who should I vote for?"). Routers also *clarify ambiguity* ("Freezing — your account, or the weather?") and serve as *next-action predictors* in agentic systems (code interpreter or search next? which memory tier to pull from?). They're built from small language models or trained-from-scratch classifiers — fast and cheap enough to run several without hurting latency. One wrinkle: routing can change context requirements (a 4K-context model's query plus 8K tokens of search results means truncate or re-route).
+
+A **model gateway** is the unified, secure interface to all models. Benefits compound: *maintenance* (API change? update the gateway, not every app), *access control and cost management* (no shared org tokens floating around; per-user/per-app permissions; usage caps), *resilience* (fallback policies for rate limits and the depressingly common API failures — retry, reroute to alternates), plus natural homes for logging, analytics, load balancing, sometimes caching and guardrails. Simple to build, widely available off the shelf.
+
+### Step 4: Reduce latency with caches
+
+Beyond Chapter 9's inference caches (KV, prompt) live two *system* caches:
+
+- **Exact caching**: reuse results for identical requests — the product summary already computed, the vector search already run. Especially valuable before multi-step or slow operations (CoT pipelines, retrieval, SQL). Implementation is classic engineering: in-memory or Redis/PostgreSQL tiers, eviction policies (LRU/LFU/FIFO). The judgment call is *what's cacheable*: not user-specific queries ("where's my order?"), not time-sensitive ones ("what's the weather?") — some teams train a classifier to decide. And mind the **leak trap**: a generic-looking question ("what's the return policy?") whose answer was personalized to user X must not be served from cache to user Y.
+- **Semantic caching**: reuse results for *similar* queries ("capital of Vietnam?" ↔ "capital city of Vietnam?") via embedding similarity and a threshold. Higher hit rates in theory; in practice the chapter is blunt — its value is "more dubious" because failure risks stack: embedding quality, vector-search correctness, threshold tuning — and a wrong match silently returns a wrong answer, while the vector search itself costs time and compute. Justify with measured hit rates before adding the complexity.
+
+### Step 5: Add agent patterns
+
+So far, every query flows one way. Agent patterns (Chapter 6) close the loop: outputs evaluated and fed back for another retrieval round, conditional branching, parallel execution — and **write actions** (send the email, place the order, transfer the money) that make systems vastly more capable and vastly more dangerous. Grant write access with utmost care. Each component added so far multiplies failure modes — which is why the next piece isn't optional.
+
+### Monitoring and observability
+
+<Figure num="10.2" caption="Failure-driven metrics, log-everything traces, silent-drift detection — and the meta-metrics that grade your observability itself.">
+  <Ch10Observability />
+</Figure>
+
+Observability is a design property, not an afterthought — and its goals mirror evaluation's: mitigate risks (failures, attacks, drift), discover improvements and savings. Grade your setup with the DevOps trio: **MTTD** (how fast you detect), **MTTR** (how fast you resolve), **CFR** (what share of deployments fail — if you don't know yours, redesign). Evaluation and monitoring form one loop: eval metrics should predict production behavior; production issues should flow back into the eval pipeline. (Terminology: *monitoring* tracks outputs to know something's wrong; *observability* instruments the system so internals can be diagnosed from outputs without shipping new code.)
+
+- **Metrics** start from failures you fear, not from what's easy to count: format-failure rates (and how fixable — missing bracket vs missing keys), factual consistency, safety triggers and refusal rates, abnormal queries. Conversational tells are gold: how often users stop generation midway, turns per conversation, token lengths per input/output and their drift, output-token distributions. Add latency (TTFT/TPOT/total, per user) and cost (token volumes, requests/s against rate limits, cache hit rates). Mix spot checks with exhaustive checks; slice everything by user, release, prompt version, time; and correlate metrics with each other and with the business north star (DAU, session duration, subscriptions).
+- **Logs and traces**: metrics say *when*, logs say *what*. Log everything — configs, sampling settings, prompt templates, full prompts, outputs, intermediate outputs, tool calls and their results, component starts/ends/crashes — tagged with IDs for tracing. **Traces** stitch a request's full path: every transformation, retrieval, prompt, with per-step time and cost — so a failure pinpoints to the step that caused it. AI helps analyze the flood, but manual daily inspection of production data still pays: developers' own sense of good-and-bad output sharpens with exposure, improving both prompts and eval pipelines.
+- **Drift detection**: three things change under you — the **system prompt** (someone edits the shared template; trivial to detect, rarely detected), **user behavior** (people adapt to tools — learned concision quietly shrinking your response lengths), and the **underlying model** behind a stable API (providers update silently; measured behavior swings between versions of the "same" model are well documented).
+
+### AI pipeline orchestration
+
+An **orchestrator** defines components (models, databases, tools — a gateway helps) and **chains** them (process query → retrieve → assemble prompt → generate → score → return-or-escalate), managing data flow and failure notification between steps. Two pieces of earned wisdom: *parallelize* whatever you can (routing and PII removal can run concurrently — latency adds up), and *don't start with one* — frameworks abstract away details you need to understand while debugging; adopt one later, judged on integration/extensibility, complex-flow support (branching, parallelism, error handling), and ease/performance (watch for hidden API calls and added latency).
+
+## User Feedback
+
+Feedback always served evaluation and product direction; in AI it's also **proprietary training data** — the scarce resource competitors can't copy, and the engine of the data flywheel (launch early → gather usage → improve models → harder to catch). It's also *user data*: privacy and transparency obligations apply in full. And while conversational interfaces make giving feedback natural, they make *extracting* it genuinely hard — the signal hides inside ordinary dialogue.
+
+### Extracting conversational feedback
+
+<Figure num="10.3" caption="The feedback taxonomy: what users say, what users do — explicit and implicit, each with its own noise profile.">
+  <Ch10Feedback />
+</Figure>
+
+**Explicit feedback** (thumbs, stars, "did we solve your problem?") is standardized, well-understood — and sparse, effortful, and response-biased (the unhappy speak loudest). **Implicit feedback** — inferred from behavior — is abundant and noisy, and conversational AI multiplied its genres. A hotel-recommendation reply reveals preference either way: "book the one near the galleries" (art lover) versus "is there nothing under $200?" (price-conscious — and the assistant missed). Extracted signals feed three uses: **evaluation** (monitoring metrics), **development** (training data — every user *edit* of a generated response is a ready-made preference pair: original = loser, edited = winner), and **personalization**.
+
+From message *content* (**natural language feedback**): early termination (stopping generation, abandoning the conversation, leaving the agent hanging); error corrections ("No, …", "I meant…", rephrasings — detectable by heuristics or models; action-nudges to agents like "also check their GitHub page"); confirmation-seeking ("Are you sure?" — possibly not wrongness, but missing detail or plain distrust); complaints (real-dataset clustering found re-clarifying demands and irrelevance complaints the largest groups, with factual-error, insufficient-detail, and under-confidence complaints following); sentiment trajectories (start angry, end happy = resolved); and from the model's side, refusal rates ("As a language model, I can't…" = an unhappy user).
+
+From user *actions*: **regeneration** (dissatisfaction — or just wanting options, especially for creative work; a stronger signal under usage-based billing where regenerating costs money; follow-up better/worse prompts turn it into preference data), **conversation organization** (delete ≈ bad; rename ≈ good conversation, bad title; share and bookmark vary by user — one person shares blunders, another shares wins: *study why your users act*), **conversation length** (positive for companions, negative for support bots), and **dialogue diversity** (long *and* repetitive = stuck in a loop). Combining signals disambiguates; interpreting them is a growing research area of its own.
+
+### Feedback design
+
+*When to collect*: throughout the journey, never intrusively. Three high-value moments: **onboarding** (calibration — faces, voices, skill levels; keep it optional where possible and calibrate over time), **when things fail** (downvotes, regeneration, model switching — and crucially, let users *recover*: edit the wrong category, collaborate with the AI, escalate to humans; image *inpainting* is the model example — users fix the flawed region and hand developers precise feedback in the process), and **when the model is uncertain** (side-by-side responses double as preference collection — with an open question whether full or truncated side-by-sides yield more reliable votes, and photo apps asking "same person?" when unsure). *Positive* feedback divides opinion: platform design guidance warns that soliciting praise makes good results feel exceptional — while practitioners prize knowing which features earn enthusiasm; the compromise is asking sparingly (e.g., 1% of users), accepting some bias.
+
+*How to collect*: seamlessly, ignorable, incentive-aligned. The cited masterclass is an image generator offering upscale / vary / regenerate per 2×2 grid — each click an implicit ranking (upscale = strongest approval; regenerate = none impressed... or curiosity). Code assistants nail it too: Tab to accept, keep typing to ignore — feedback as a byproduct of work. The structural advantage belongs to **integrated** products (the email client sees whether the draft was sent; a standalone chatbot never knows) — one reason standalone apps struggle for quality feedback, and why feedback often needs surrounding context (preceding turns) that requires consent — via terms of service or explicit *data donation* flows. Practicalities: explain how feedback is used (and honor it); never ask the impossible (don't make users pick between two answers they can't evaluate — offer "I don't know"); avoid ambiguous UI (a feedback form that swapped the angry emoji into the five-star slot garbled a whole event's ratings); and decide signal *visibility* deliberately — private feedback is more candid; public feedback aids discovery (a social platform reported likes rising after making them private).
+
+### Feedback limitations
+
+<Figure num="10.4" caption="Four biases and the loop that eats products: feedback is data, and data arrives skewed.">
+  <Ch10Biases />
+</Figure>
+
+**Biases** to design around: *leniency* (positive is the low-effort option — ride-hailing's ~4.8-star averages where below 4.6 risks deactivation; descriptive labels like "nothing to complain about, nothing stellar" extract more truth than numbers), *randomness* (unmotivated users click without reading — two long side-by-side responses practically invite it), *position* (first option wins; randomize or model it away), and *preference biases* (longer-looks-better even when wrong; recency favoring the last answer seen). Inspect your feedback distributions before believing them.
+
+**Degenerate feedback loops** are the deeper hazard: you only get feedback on what you *show*, and when feedback trains the next iteration, initial quirks amplify — the slightly-higher-ranked video gathers clicks that entrench it (exposure/popularity bias, filter bubbles); a few cat-photo enthusiasts steer the generator cat-ward, attracting more cat lovers, until the product *is* cats — and the same mechanism amplifies uglier biases. Models trained on human feedback also drift toward **sycophancy** — telling users what they want to hear, matching their stated views over accuracy. Feedback is indispensable; unexamined feedback is product poison.
+
+<div class="note">
+<span class="aside-label">Closing the book</span>
+
+The book's epilogue is brief and warm: AI engineering's challenges are real, but each is an opportunity for growth and impact — and the discipline's fundamentals (evaluation, data, systems thinking) outlast every tool cycle. The parting move is an invitation: go build, and keep asking the right questions — they matter more than having every answer.
+
+</div>
+
+<KeyTakeaways
+  items={[
+    "Start with <strong>query → model → response</strong> and add components only as needs demand: context construction → guardrails → router + gateway → caches → agent patterns. Every addition buys capability and new failure modes.",
+    "Input guardrails stop PII leaks (mask + reverse-map) and prompt attacks; output guardrails catch quality and security failures, lean on <strong>retries</strong> (parallel ones for latency), and fall back to humans. Streaming and guardrails fight — decide consciously.",
+    "A <strong>router</strong> (intent classifier) sends each query to the right model, human, or polite refusal — small, fast, cheap. A <strong>gateway</strong> centralizes API access: one place for changes, credentials, cost caps, and failover.",
+    "<strong>Exact caching</strong> is a free win for repeated, non-personal, non-time-sensitive work — beware the personalized-answer leak. <strong>Semantic caching</strong> stacks failure-prone components; demand measured hit rates first.",
+    "Observability is failure-driven: design metrics around what you fear (format failures, hallucination, refusals, stopped generations), log <strong>everything</strong> with trace IDs, and grade yourself on MTTD/MTTR/CFR.",
+    "Three things drift silently: the system prompt, user behavior, and the model behind the API. Detect all three.",
+    "Don't start with an orchestrator; adopt one when complexity justifies it — and parallelize independent steps.",
+    "User feedback is <strong>proprietary training data</strong> — the data flywheel — and user data, with all the obligations that implies.",
+    "Conversational feedback hides everywhere: terminations, corrections (<strong>user edits = preference pairs</strong>), complaints, sentiment arcs, regenerations, deletes-and-renames. Interpret actions by studying why YOUR users take them.",
+    "Collect at the right moments — onboarding, failures (let users recover: inpainting), low confidence (side-by-sides = preference data) — seamlessly, ignorably, honestly. Never ask the impossible; offer 'I don't know'.",
+    "Feedback arrives biased (leniency, randomness, position, length/recency) and can spiral: <strong>degenerate feedback loops</strong> entrench early quirks, and feedback-trained models drift toward sycophancy. Examine before you train on it.",
+    "Most AI problems are <strong>system</strong> problems: solutions span components, and understanding the whole is what unlocks real fixes — the book's final and most durable lesson.",
+  ]}
+/>
+
+<References
+  items={[
+    {
+      title: "Building A Generative AI Platform",
+      url: "https://huyenchip.com/2024/07/25/genai-platform.html",
+      type: "Blog",
+      source: "Chip Huyen",
+      why: "The essay this chapter grew from — the same step-by-step architecture with additional diagrams, free to share with your team.",
+    },
+    {
+      title: "What We Learned from a Year of Building with LLMs",
+      url: "https://applied-llms.org/",
+      type: "Blog",
+      source: "Yan, Bischof, Frazier, Husain, Liu & Shankar",
+      why: "Six practitioners' tactical/operational/strategic lessons covering exactly this chapter's terrain — guardrails, caching, monitoring, feedback — from production scars.",
+    },
+    {
+      title: "NeMo Guardrails",
+      url: "https://github.com/NVIDIA/NeMo-Guardrails",
+      type: "Tool",
+      source: "NVIDIA",
+      why: "The open-source guardrails toolkit cited in this chapter — programmable input/output/dialogue rails you can wire into the architecture's step 2.",
+    },
+    {
+      title: "Arize Phoenix",
+      url: "https://github.com/Arize-ai/phoenix",
+      type: "Tool",
+      source: "Arize AI",
+      why: "Open-source LLM tracing and evaluation — see this chapter's logs/traces/metrics section as working software, self-hostable in a notebook.",
+    },
+    {
+      title: "Towards Understanding Sycophancy in Language Models",
+      url: "https://arxiv.org/abs/2310.13548",
+      type: "Paper",
+      source: "Sharma et al. · Anthropic",
+      why: "The study behind this chapter's warning that feedback-trained models learn to agree rather than be right — essential before you train on user signals.",
+    },
+    {
+      title: "Your AI product needs evals — observability section",
+      url: "https://hamel.dev/blog/posts/evals/#level-2-human-model-evaluation",
+      type: "Blog",
+      source: "Hamel Husain",
+      why: "Bridges this chapter's monitoring loop back to Chapter 4's evaluation pipeline: how production traces become eval cases, with tooling examples.",
+    },
+  ]}
+/>
+
+<KnowledgeCheck
+  chapter="ch10"
+  flashcards={flashcards}
+  quiz={quiz}
+  assignments={assignments}
+/>

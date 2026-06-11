@@ -25,7 +25,7 @@ commit per completed chapter.
 - [x] Chapter 7 — Finetuning
 - [x] Chapter 8 — Dataset Engineering
 - [x] Chapter 9 — Inference Optimization
-- [ ] Chapter 10 — Architecture and User Feedback
+- [x] Chapter 10 — Architecture and User Feedback
 - [ ] Home page final pass (chapter cards, overview, preface/epilogue essence)
 
 ## Phase C — QA
