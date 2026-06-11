@@ -23,10 +23,10 @@ const { chapter, flashcards, quiz, assignments } = Astro.props;
   </p>
 
   <h3 id="flashcards">Flashcards</h3>
-  <Flashcards client:visible cards={flashcards} storageKey={chapter} />
+  <Flashcards client:load cards={flashcards} storageKey={chapter} />
 
   <h3 id="quiz">Quiz</h3>
-  <Quiz client:visible questions={quiz} storageKey={chapter} />
+  <Quiz client:load questions={quiz} storageKey={chapter} />
 
   <Assignments items={assignments} />
 </section>
