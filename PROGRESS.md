@@ -36,5 +36,5 @@ commit per completed chapter.
 - [x] All 60 reference links fetch OK (HTTP 2xx)
 
 ## Phase D — Deploy
-- [ ] gh repo create ai-engineering-notes (public), push
-- [ ] Pages enabled via Actions, live URL verified (incl. search under base path)
+- [x] gh repo create ai-engineering-notes (public), pushed
+- [x] Pages enabled via Actions; live URL verified — all pages 200, pagefind served under base path
