@@ -1,0 +1,42 @@
+<svg viewBox="0 0 720 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Anatomy of a transformer language model">
+  <defs>
+    <marker id="ch02tf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-faint)" />
+    </marker>
+  </defs>
+
+  <!-- input -->
+  <text x="360" y="28" font-size="13" text-anchor="middle" fill="var(--ink-soft)">tokens in: “My favorite color is”</text>
+  <line x1="360" y1="38" x2="360" y2="62" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch02tf-arrow)" />
+
+  <!-- embedding module -->
+  <rect x="180" y="68" width="360" height="52" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="360" y="90" font-size="14" font-weight="600" text-anchor="middle" fill="var(--ink)">Embedding module</text>
+  <text x="360" y="108" font-size="11.5" text-anchor="middle" fill="var(--ink-soft)">token embeddings + positional embeddings</text>
+
+  <line x1="360" y1="120" x2="360" y2="144" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch02tf-arrow)" />
+
+  <!-- transformer blocks -->
+  <rect x="120" y="150" width="480" height="180" rx="12" fill="none" stroke="var(--accent)" stroke-dasharray="6 5" />
+  <text x="140" y="176" font-size="12" font-weight="600" fill="var(--accent-ink)">× N transformer blocks (“layers”)</text>
+
+  <rect x="160" y="190" width="400" height="56" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" />
+  <text x="360" y="212" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">Attention module</text>
+  <text x="360" y="231" font-size="11.5" text-anchor="middle" fill="var(--ink-soft)">4 weight matrices: query · key · value · output projection</text>
+
+  <line x1="360" y1="246" x2="360" y2="264" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch02tf-arrow)" />
+
+  <rect x="160" y="268" width="400" height="50" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="360" y="289" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--ink)">MLP (feedforward) module</text>
+  <text x="360" y="307" font-size="11.5" text-anchor="middle" fill="var(--ink-soft)">linear layers + a simple nonlinearity (ReLU, GELU)</text>
+
+  <line x1="360" y1="330" x2="360" y2="354" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch02tf-arrow)" />
+
+  <!-- output layer -->
+  <rect x="180" y="360" width="360" height="52" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="360" y="382" font-size="14" font-weight="600" text-anchor="middle" fill="var(--ink)">Output layer (“model head”, unembedding)</text>
+  <text x="360" y="400" font-size="11.5" text-anchor="middle" fill="var(--ink-soft)">maps the final vector to one logit per vocabulary token</text>
+
+  <line x1="360" y1="412" x2="360" y2="434" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch02tf-arrow)" />
+  <text x="360" y="452" font-size="13" text-anchor="middle" fill="var(--ink-soft)">logits → sampling → next token</text>
+</svg>

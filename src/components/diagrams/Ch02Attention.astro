@@ -1,0 +1,49 @@
+<svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The attention mechanism as a library lookup">
+  <defs>
+    <marker id="ch02at-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)" />
+    </marker>
+  </defs>
+
+  <!-- query box on the left -->
+  <rect x="30" y="130" width="180" height="78" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5" />
+  <text x="120" y="160" font-size="14" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">Query (Q)</text>
+  <text x="120" y="180" font-size="11.5" text-anchor="middle" fill="var(--ink-soft)">“what am I looking for</text>
+  <text x="120" y="195" font-size="11.5" text-anchor="middle" fill="var(--ink-soft)">right now?”</text>
+
+  <!-- previous tokens: three K/V cards -->
+  <g font-size="12" text-anchor="middle">
+    <rect x="330" y="36" width="200" height="64" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+    <text x="430" y="60" font-weight="600" fill="var(--ink)">token “How”</text>
+    <text x="430" y="80" fill="var(--ink-soft)">key = page number · value = page content</text>
+
+    <rect x="330" y="138" width="200" height="64" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+    <text x="430" y="162" font-weight="600" fill="var(--ink)">token “are”</text>
+    <text x="430" y="182" fill="var(--ink-soft)">key · value</text>
+
+    <rect x="330" y="240" width="200" height="64" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+    <text x="430" y="264" font-weight="600" fill="var(--ink)">token “you”</text>
+    <text x="430" y="284" fill="var(--ink-soft)">key · value</text>
+  </g>
+
+  <!-- arrows from query to keys with scores -->
+  <line x1="214" y1="150" x2="324" y2="78" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ch02at-arrow)" />
+  <text x="252" y="96" font-size="11" fill="var(--accent-ink)">Q·K score 0.1</text>
+
+  <line x1="214" y1="169" x2="324" y2="169" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#ch02at-arrow)" />
+  <text x="240" y="161" font-size="11" font-weight="600" fill="var(--accent-ink)">Q·K score 0.7</text>
+
+  <line x1="214" y1="188" x2="324" y2="262" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ch02at-arrow)" />
+  <text x="252" y="250" font-size="11" fill="var(--accent-ink)">Q·K score 0.2</text>
+
+  <!-- weighted sum to output -->
+  <line x1="536" y1="68" x2="600" y2="150" stroke="var(--ink-faint)" stroke-width="1" marker-end="url(#ch02at-arrow)" />
+  <line x1="536" y1="170" x2="596" y2="170" stroke="var(--ink-faint)" stroke-width="2.5" marker-end="url(#ch02at-arrow)" />
+  <line x1="536" y1="272" x2="600" y2="190" stroke="var(--ink-faint)" stroke-width="1" marker-end="url(#ch02at-arrow)" />
+
+  <rect x="604" y="138" width="96" height="64" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5" />
+  <text x="652" y="164" font-size="12.5" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">weighted</text>
+  <text x="652" y="181" font-size="12.5" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">sum of V</text>
+
+  <text x="360" y="344" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">High Q·K score → that token’s value contributes more to the next-token prediction. Thicker arrows = more attention.</text>
+</svg>

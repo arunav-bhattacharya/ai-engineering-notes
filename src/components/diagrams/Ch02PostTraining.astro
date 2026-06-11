@@ -1,0 +1,42 @@
+<svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The training pipeline: pre-training, supervised finetuning, preference finetuning">
+  <defs>
+    <marker id="ch02pt-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-faint)" />
+    </marker>
+  </defs>
+
+  <!-- stage 1 -->
+  <rect x="40" y="20" width="400" height="86" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="64" y="48" font-size="14.5" font-weight="600" fill="var(--ink)">1 · Pre-training (self-supervision)</text>
+  <text x="64" y="69" font-size="11.5" fill="var(--ink-soft)">data: raw internet text, trillions of tokens</text>
+  <text x="64" y="87" font-size="11.5" fill="var(--ink-soft)">result: a powerful completion machine — ~98% of all compute</text>
+
+  <line x1="240" y1="106" x2="240" y2="138" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch02pt-arrow)" />
+  <text x="256" y="127" font-size="11.5" font-style="italic" fill="var(--accent)">teach it to converse</text>
+
+  <!-- stage 2 -->
+  <rect x="40" y="144" width="400" height="86" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="64" y="172" font-size="14.5" font-weight="600" fill="var(--ink)">2 · Supervised finetuning (SFT)</text>
+  <text x="64" y="193" font-size="11.5" fill="var(--ink-soft)">data: (prompt, response) demonstrations by skilled labelers</text>
+  <text x="64" y="211" font-size="11.5" fill="var(--ink-soft)">result: an assistant that answers instead of completing</text>
+
+  <line x1="240" y1="230" x2="240" y2="262" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch02pt-arrow)" />
+  <text x="256" y="251" font-size="11.5" font-style="italic" fill="var(--accent)">align it with what people prefer</text>
+
+  <!-- stage 3 -->
+  <rect x="40" y="268" width="400" height="104" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+  <text x="64" y="296" font-size="14.5" font-weight="600" fill="var(--accent-ink)">3 · Preference finetuning</text>
+  <text x="64" y="317" font-size="11.5" fill="var(--ink-soft)">data: comparisons — (prompt, winner, loser)</text>
+  <text x="64" y="335" font-size="11.5" fill="var(--ink-soft)">method: RLHF (reward model + PPO), DPO, RLAIF…</text>
+  <text x="64" y="353" font-size="11.5" fill="var(--ink-soft)">result: responses people actually prefer</text>
+
+  <!-- side panel: reward model -->
+  <rect x="490" y="268" width="206" height="104" rx="10" fill="var(--bg-raised)" stroke="var(--line-strong)" stroke-dasharray="5 4" />
+  <text x="593" y="296" font-size="12.5" font-weight="600" text-anchor="middle" fill="var(--ink)">Reward model</text>
+  <text x="593" y="316" font-size="11" text-anchor="middle" fill="var(--ink-soft)">scores (prompt, response)</text>
+  <text x="593" y="333" font-size="11" text-anchor="middle" fill="var(--ink-soft)">trained on comparison data</text>
+  <text x="593" y="350" font-size="11" text-anchor="middle" fill="var(--ink-soft)">also reusable for best-of-N</text>
+  <line x1="486" y1="320" x2="448" y2="320" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch02pt-arrow)" />
+
+  <text x="40" y="408" font-size="12" font-style="italic" fill="var(--ink-soft)">Pre-training optimizes token-level quality; post-training optimizes whole-response quality — reading vs. learning to use what you read.</text>
+</svg>
