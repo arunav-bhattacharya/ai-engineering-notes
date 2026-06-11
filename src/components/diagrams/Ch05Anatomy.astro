@@ -1,0 +1,44 @@
+<svg viewBox="0 0 720 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Anatomy of a prompt and how it reaches the model">
+  <defs>
+    <marker id="ch05an-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-faint)" />
+    </marker>
+  </defs>
+
+  <!-- system prompt -->
+  <rect x="40" y="16" width="310" height="96" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+  <text x="60" y="42" font-size="13" font-weight="600" fill="var(--accent-ink)">System prompt (the developer's voice)</text>
+  <text x="60" y="64" font-size="11" fill="var(--ink-soft)">task description · role/persona to adopt</text>
+  <text x="60" y="82" font-size="11" fill="var(--ink-soft)">output format rules · behavior constraints</text>
+  <text x="60" y="100" font-size="11" fill="var(--ink-soft)">often given higher priority via post-training</text>
+
+  <!-- user prompt -->
+  <rect x="370" y="16" width="310" height="96" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="390" y="42" font-size="13" font-weight="600" fill="var(--ink)">User prompt (the user's voice)</text>
+  <text x="390" y="64" font-size="11" fill="var(--ink-soft)">the concrete task: question, document, request</text>
+  <text x="390" y="82" font-size="11" fill="var(--ink-soft)">context: files, retrieved passages, data</text>
+  <text x="390" y="100" font-size="11" fill="var(--ink-soft)">examples (shots) of how to do the task</text>
+
+  <!-- template -->
+  <line x1="195" y1="112" x2="195" y2="140" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch05an-arrow)" />
+  <line x1="525" y1="112" x2="525" y2="140" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch05an-arrow)" />
+
+  <rect x="40" y="146" width="640" height="84" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="60" y="172" font-size="13" font-weight="600" fill="var(--ink)">Chat template (defined by the model's developers — not optional!)</text>
+  <text x="60" y="194" font-size="11" fill="var(--ink-soft)">system + user are concatenated into ONE final prompt using model-specific special tokens</text>
+  <text x="60" y="212" font-size="11" font-family="var(--font-code)" fill="var(--ink-faint)">&lt;|begin_of_text|&gt;&lt;|start_header_id|&gt;system&lt;|end_header_id|&gt;…  (template errors fail silently)</text>
+
+  <line x1="360" y1="230" x2="360" y2="258" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch05an-arrow)" />
+
+  <!-- model + attention curve -->
+  <rect x="40" y="264" width="640" height="118" rx="10" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="60" y="290" font-size="13" font-weight="600" fill="var(--ink)">Model attention over the prompt — the “lost in the middle” curve</text>
+  <!-- U curve -->
+  <path d="M 80 318 C 180 318, 200 354, 360 354 C 520 354, 540 318, 640 318" fill="none" stroke="var(--accent)" stroke-width="2" />
+  <text x="80" y="310" font-size="10.5" fill="var(--accent-ink)">strong recall at the start</text>
+  <text x="640" y="310" font-size="10.5" text-anchor="end" fill="var(--accent-ink)">strong recall at the end</text>
+  <text x="360" y="372" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">information buried mid-prompt is found least reliably (needle-in-a-haystack tests)</text>
+
+  <text x="360" y="412" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Practical consequence: put instructions at the beginning or end — never bury the important part in the middle.</text>
+  <text x="360" y="430" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">And always print the final assembled prompt before sending it.</text>
+</svg>

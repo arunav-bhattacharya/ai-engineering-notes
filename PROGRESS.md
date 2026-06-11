@@ -20,7 +20,7 @@ commit per completed chapter.
 - [x] Chapter 2 — Understanding Foundation Models
 - [x] Chapter 3 — Evaluation Methodology
 - [x] Chapter 4 — Evaluate AI Systems
-- [ ] Chapter 5 — Prompt Engineering
+- [x] Chapter 5 — Prompt Engineering
 - [ ] Chapter 6 — RAG and Agents
 - [ ] Chapter 7 — Finetuning
 - [ ] Chapter 8 — Dataset Engineering
