@@ -1,0 +1,170 @@
+---
+number: 9
+title: "Inference Optimization"
+shortTitle: "Inference Optimization"
+description: "Making models faster and cheaper: the metrics that matter (TTFT, TPOT, goodput, MFU/MBU), the hardware realities of AI accelerators, model-level techniques from quantization to speculative decoding and KV-cache surgery, and the service-level playbook — batching, decoupling, prompt caching, parallelism."
+readingTime: 32
+---
+
+import Figure from "../../components/Figure.astro";
+import KeyTakeaways from "../../components/KeyTakeaways.astro";
+import References from "../../components/References.astro";
+import KnowledgeCheck from "../../components/KnowledgeCheck.astro";
+import Ch09Metrics from "../../components/diagrams/Ch09Metrics.astro";
+import Ch09Bottlenecks from "../../components/diagrams/Ch09Bottlenecks.astro";
+import Ch09ModelOpt from "../../components/diagrams/Ch09ModelOpt.astro";
+import Ch09Service from "../../components/diagrams/Ch09Service.astro";
+import { flashcards, quiz, assignments } from "../../data/knowledge/ch09";
+
+Models come and go; *better, cheaper, faster* is forever. A great model that's too slow loses users (a next-day stock predictor that takes two days is worthless), and one that's too expensive loses its ROI. Optimization happens at three levels — **model** (smaller models, better architectures), **hardware** (better chips), and **service** (running models on hardware efficiently against real traffic) — making this one of AI's most interdisciplinary corners. Even if you only ever call APIs, understanding these techniques lets you evaluate providers and diagnose latency/cost pain.
+
+## Understanding Inference Optimization
+
+In production, an **inference server** runs models on hardware; the surrounding **inference service** receives, routes, and preprocesses requests (model APIs *are* inference services — self-hosting means building your own).
+
+### Computational bottlenecks
+
+<Figure num="9.1" caption="Two bottleneck types, one memory hierarchy — and the prefill/decode split that shapes everything downstream.">
+  <Ch09Bottlenecks />
+</Figure>
+
+Optimization starts with knowing what you're limited by:
+
+- **Compute-bound** work is limited by arithmetic capacity (think password cracking; image-generation inference).
+- **Memory bandwidth-bound** work is limited by data movement (loading weights from memory to compute units). The classification comes from *arithmetic intensity* — operations per byte of memory access — visualized in roofline charts by profiling tools. (Terminology trap: "memory-bound" sometimes means bandwidth-bound, sometimes memory-*capacity*-bound — the OOM kind — and capacity problems usually reduce to bandwidth problems anyway, since you can split work if transfer is fast enough.)
+
+For transformer LLMs, the split maps exactly onto inference's two phases: **prefill** (input tokens processed in parallel — compute-bound) and **decode** (one token at a time, each requiring the weights to stream through compute units — bandwidth-bound). Different profiles, different cures: more FLOP/s for compute-bound, more bandwidth or fewer bytes for bandwidth-bound — and production systems often separate the two phases onto different machines. Most LLM workloads today are bandwidth-bound.
+
+### Online and batch APIs
+
+Providers split offerings into **online APIs** (latency-first, process on arrival) and **batch APIs** (cost-first — roughly half price for hours-scale turnaround), the latter fitting synthetic data generation, periodic reports, onboarding document crunches, model-migration reprocessing, newsletter generation, and reindexing. (Distinct from classic ML "batch inference," which *pre*-computes predictions — impossible when prompts are open-ended.) Online APIs still micro-batch when latency allows, and most offer **streaming** — tokens as generated, slashing waiting time at the cost of showing responses before they can be fully vetted.
+
+### Inference performance metrics
+
+<Figure num="9.2" caption="Latency decomposes into TTFT + TPOT; throughput converts to cost; goodput keeps throughput honest; MFU/MBU measure real efficiency.">
+  <Ch09Metrics />
+</Figure>
+
+- **Latency** = **TTFT** (time to first token — the prefill phase, scaling with input length, expectation varying by app) + **TPOT** (time per output token) × output length. (~120ms/token matches very fast reading — enough for streaming chat.) Same total latency, different feels: instant-first-token-slow-stream versus the reverse is a UX decision, tunable by shifting compute between prefill and decode. Two gotchas: user-visible TTFT ≠ model TTFT when hidden steps run (CoT, agent plans — hence "time to publish"), and **latency is a distribution** — one 3-second outlier turns ten ~100ms requests into a misleading 390ms average; report p50/p90/p99 and investigate outliers.
+- **Throughput** — output tokens/s across all users (count input and output separately; prefill and decode differ) or requests/minute — converts directly to cost ($2/h at 100 tokens/s ≈ $5.56 per million output tokens). Comparisons across models are fuzzy (different tokenizers!) — prefer cost-per-request. And mind the **latency/throughput trade-off**: production teams report 2–3× throughput is available if you'll sacrifice TTFT/TPOT — which is why **goodput** exists: requests per second *meeting your SLO*. Completing 100/min with 30 in-SLO is goodput 30; optimizing raw throughput can quietly destroy the experience.
+- **Utilization**, measured right: the famous `nvidia-smi` "GPU utilization" only measures *busy time* — a chip doing 1 of its possible 100 ops/s reports 100%. The metrics with meaning are **MFU** (achieved throughput ÷ theoretical peak FLOP/s throughput) and **MBU** (bandwidth used ÷ peak: params × bytes/param × tokens/s over peak bandwidth — a 7B FP16 model at 100 tokens/s uses 1.4 TB/s; on a 2 TB/s chip that's 70%). Training MFU >50% is good; inference runs lower (prefill higher than decode). The point isn't maximal utilization — it's getting jobs done faster and cheaper.
+
+### AI accelerators
+
+Hardware and AI co-evolved (insufficient compute helped freeze AI funding in the 1970s; GPUs made the 2012 deep-learning revival possible by replacing thousands of CPUs with a couple of cards). **GPUs** dominate: where CPUs offer a few powerful cores for sequential work, GPUs offer thousands of small cores for parallel work — and matrix multiplication, the bulk of neural-net FLOPs, parallelizes perfectly. The success spawned a zoo of accelerators (TPUs and many vendor-specific designs), with a notable trend toward **inference-specialized chips** (inference can reach ~90% of deployed ML cost): optimized for low precision and fast memory access over training's huge memory demands; edge chips follow the same logic. Chips also differ in compute primitives (scalar/vector/tensor units) — architecture and hardware shape each other (the transformer was originally designed to run fast on TPUs).
+
+Three characteristics matter across use cases: **computational capability** (peak FLOP/s — roughly doubling as precision halves; treat advertised peaks skeptically), **memory size and bandwidth** across the three-tier hierarchy (CPU DRAM: big and slow ~25–50 GB/s → GPU HBM: 24–80 GB at 256 GB/s–1.5+ TB/s → on-chip SRAM: ≤~40 MB at 10+ TB/s — most GPU optimization is hierarchy management, which mainstream frameworks barely expose, hence the rise of kernel languages), and **power** (a flagship GPU at peak for a year ≈ 70% of a US household's annual electricity — the data-center energy story from Chapter 2 again). Selection questions: can it run the workload, how fast, at what price — answered by FLOP/s, memory size, and bandwidth.
+
+## Model-Level Optimization
+
+<Figure num="9.3" caption="Three transformer cost centers — size, autoregressive decoding, attention — and the technique families attacking each.">
+  <Ch09ModelOpt />
+</Figure>
+
+Model-level techniques modify the model (and may change behavior — benchmarks show the *same* model varying in quality across inference providers because of optimization choices; evaluate quality, not just speed). Three cost centers:
+
+### Model compression
+
+**Quantization** (Chapter 7) is the workhorse — easy, general, halving memory per precision halving, near its floor at ~1 bit. **Distillation** (Chapter 8) captures a big model's behavior in fewer parameters. **Pruning** — either removing parts of the architecture or zeroing low-value parameters for sparsity — shows dramatic research results (90%+ of nonzero parameters removable without accuracy loss in some networks) but remains rare in practice: harder to apply, smaller wins, and hardware support for sparsity is spotty.
+
+### Overcoming the autoregressive decoding bottleneck
+
+One token at a time is slow *and* expensive (output tokens cost ~2–4× input tokens; one output token impacts latency like ~100 input tokens). Three attack vectors:
+
+- **Speculative decoding**: a fast *draft* model proposes K tokens; the *target* model verifies all K **in parallel** (verification has prefill's parallel profile — and decode's idle FLOPs make it nearly free); accept the agreeing prefix, generate one real token, repeat. Easy tokens are predictable, so acceptance runs high (higher still for structured text like code). Result: roughly *halved latency with unchanged quality* (a 4B draft sped a 70B target ~8× per draft token), ~50 lines of code to implement, now standard in major serving frameworks.
+- **Inference with reference**: same idea, draft tokens copied **from the input** instead of from a model — perfect when outputs heavily quote context (document Q&A, bug-fixing, multi-turn chat); ~2× speedups there, no extra model, useless elsewhere.
+- **Parallel decoding**: generate several future tokens *simultaneously* (you can often guess "the" two tokens ahead), via the same decoder (Lookahead, with Jacobi-style iterative verification — regenerate only the failed tokens) or extra trained decoding heads (Medusa, with tree-based selection among each head's candidates; reported up to 1.9× token-generation gains). Powerful, less intuitive, harder to implement.
+
+### Attention optimization and the KV cache
+
+Decoding token x<sub>t+1</sub> needs key/value vectors for everything before it — recomputing them every step would be madness, so the **KV cache** stores them (inference-only; training sees all tokens at once). The catch: cache size = 2 × batch × sequence length × layers × model dimension × bytes — ~54 GB for a 13B-class model at batch 32 and 2K context, and ~3 TB (3× the weights!) for a 500B model at batch 512 — *the* long-context bottleneck. Three technique families:
+
+- **Redesign attention** (training-time changes): local windowed attention (attend to a nearby window, optionally interleaved with global layers), **multi-query** and **grouped-query attention** (share KV pairs across query heads, or per group), cross-layer attention (share KV across adjacent layers). A production chat company stacking three of these cut KV cache 20× — turning memory from their binding constraint into a non-issue.
+- **Manage the cache**: vLLM's **PagedAttention** (non-contiguous blocks à la virtual memory — less fragmentation, flexible sharing), KV quantization, adaptive compression, selective retention.
+- **Write kernels**: hardware-specialized code for hot operations — **FlashAttention** fused transformer operations for dramatic speedups (and gets rewritten per GPU generation). The general kernel toolkit: vectorization, parallelization, loop tiling (cache-aware access order), operator fusion (skip redundant memory trips). Kernels live below Python — in CUDA, Triton, ROCm — and **compilers** (torch.compile, XLA, TensorRT, TVM) *lower* model code onto hardware, swapping in optimized kernels as they go. A published stacking exercise on a 7B model — compile → INT8 → INT4 → speculative decoding — multiplied throughput severalfold, with the telling caveat that quality impact went unmeasured.
+
+## Service-Level Optimization
+
+<Figure num="9.4" caption="The service-level playbook — resource management that leaves the model (and its quality) untouched.">
+  <Ch09Service />
+</Figure>
+
+Service-level techniques manage resources without touching the model — no quality risk:
+
+- **Batching** — the bus instead of private cars. **Static**: depart when full (everyone waits for the last passenger). **Dynamic**: full *or* schedule (bounded latency, occasionally half-empty buses). **Continuous/in-flight** (the Orca insight): return each finished response immediately and slot a new request into its place — short responses stop waiting for 1,000-token batchmates.
+- **Decouple prefill and decode** onto separate instances: colocated, an arriving prefill job drains compute from in-flight decodes, hurting everyone's TPOT. Disaggregation (with intermediate states shipped over fast interconnects) significantly raises in-SLO volume; tune the prefill:decode instance ratio to your workload (long inputs + TTFT priority → 2:1–4:1; the reverse → 1:2–1:1).
+- **Prompt caching** (a.k.a. prefix/context caching): process shared prompt segments once — system prompts above all, but also long documents queried repeatedly and earlier conversation turns. A 1K-token system prompt at a million daily calls ≈ a *billion* repeated tokens avoided; providers offer it with steep cached-token discounts (up to ~90% cost and ~75% latency reductions on long-context patterns), priced against cache storage. Self-hosting it takes real engineering.
+- **Parallelism**: **replica** (more model copies — simple, scales traffic, and packing different model sizes onto different GPUs is a bin-packing puzzle), **tensor/intra-operator** (split each operation's matrices across devices — both fits models too big for one machine *and* cuts latency, minus communication overhead), **pipeline** (stage layers across machines — throughput up, per-request latency up; serving avoids it when latency matters, training embraces it), plus long-input specialists (**context parallelism**: split the input across devices; **sequence parallelism**: split operators across devices).
+
+Choosing among all of the above is workload arithmetic: KV-cache work matters most for long contexts; prompt caching for shared prefixes and multi-turn; replica scaling when latency outranks cost. The chapter's closing shortlist of highest-impact techniques across use cases: **quantization, tensor parallelism, replica parallelism, and attention optimization**.
+
+<KeyTakeaways
+  items={[
+    "Know your bottleneck: <strong>prefill is compute-bound, decode is bandwidth-bound</strong> — most LLM serving is bandwidth-bound, which is why fewer bytes (quantization) and more bandwidth beat more FLOPs.",
+    "Latency = <strong>TTFT + TPOT × output tokens</strong>; report percentiles, never averages; user-visible TTFT differs from model TTFT when hidden reasoning runs.",
+    "Throughput converts to cost, but optimize <strong>goodput</strong> — requests meeting your SLO — or batching gains will quietly wreck the experience.",
+    "Ignore nvidia-smi utilization; track <strong>MFU and MBU</strong> (params × bytes × tokens/s ÷ peak bandwidth). The goal is faster-and-cheaper jobs, not prettier utilization numbers.",
+    "Accelerators in three numbers: peak FLOP/s (per precision), memory size + bandwidth (DRAM → HBM → SRAM hierarchy — GPU optimization is hierarchy management), power. Inference-specialized chips trade capacity for low precision and fast access.",
+    "Compression: <strong>quantization</strong> is the easy, universal win; distillation shrinks behavior into fewer parameters; pruning impresses in papers more than production.",
+    "<strong>Speculative decoding</strong> — draft, verify in parallel, accept the prefix — roughly halves latency at zero quality cost and is now table stakes. Inference-with-reference covers quote-heavy workloads; parallel decoding (Medusa, Lookahead) breaks sequentiality outright.",
+    "The <strong>KV cache</strong> is the long-context tax (it can dwarf the weights): redesign attention (GQA/MQA, local windows, cross-layer — 20× reductions in production), manage it (PagedAttention), and kernel it (FlashAttention).",
+    "Service-level wins are quality-free: <strong>continuous batching</strong>, prefill/decode disaggregation, and <strong>prompt caching</strong> (billions of repeated tokens saved on system prompts alone).",
+    "Parallelism: replica for traffic, <strong>tensor for big models and low latency</strong>, pipeline for training throughput (not latency-sensitive serving).",
+    "Provider optimizations can change model quality — identical models score differently across inference services. Evaluate quality alongside speed and price.",
+    "The highest-impact shortlist: quantization, tensor parallelism, replica parallelism, attention optimization.",
+  ]}
+/>
+
+<References
+  items={[
+    {
+      title: "Transformer Inference Arithmetic",
+      url: "https://kipp.ly/transformer-inference-arithmetic/",
+      type: "Blog",
+      source: "kipply (Carol Chen)",
+      why: "The classic back-of-envelope guide this chapter's memory and bandwidth math descends from — derive kv-cache sizes, latency floors, and MBU yourself.",
+    },
+    {
+      title: "Efficient Memory Management for LLM Serving with PagedAttention",
+      url: "https://arxiv.org/abs/2309.06180",
+      type: "Paper",
+      source: "Kwon et al., 2023 · vLLM",
+      why: "The paper that made vLLM the default serving stack — virtual-memory paging applied to the KV cache, with the fragmentation analysis that explains why it wins.",
+    },
+    {
+      title: "FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness",
+      url: "https://arxiv.org/abs/2205.14135",
+      type: "Paper",
+      source: "Dao et al., 2022",
+      why: "The kernel that proved IO-awareness (respecting the SRAM/HBM hierarchy) beats raw FLOP counting — the concrete example behind this chapter's kernels section.",
+    },
+    {
+      title: "How to Make LLMs Go Fast",
+      url: "https://vgel.me/posts/faster-inference/",
+      type: "Blog",
+      source: "Theia Vogel",
+      why: "A sweeping, readable tour of nearly every technique in this chapter — quantization, speculative decoding, Medusa, batching — with intuitions and diagrams.",
+    },
+    {
+      title: "LLM Inference Performance Engineering: Best Practices",
+      url: "https://www.databricks.com/blog/llm-inference-performance-engineering-best-practices",
+      type: "Blog",
+      source: "Databricks (Mosaic AI)",
+      why: "Production-grade guidance on MFU/MBU, batching, and latency targets — the source of several benchmark figures in this territory.",
+    },
+    {
+      title: "Mastering LLM Techniques: Inference Optimization",
+      url: "https://developer.nvidia.com/blog/mastering-llm-techniques-inference-optimization/",
+      type: "Blog",
+      source: "NVIDIA",
+      why: "The hardware vendor's view of the same stack — attention variants, in-flight batching, tensor parallelism — useful for connecting techniques to actual GPU features.",
+    },
+  ]}
+/>
+
+<KnowledgeCheck
+  chapter="ch09"
+  flashcards={flashcards}
+  quiz={quiz}
+  assignments={assignments}
+/>

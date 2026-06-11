@@ -24,7 +24,7 @@ commit per completed chapter.
 - [x] Chapter 6 — RAG and Agents
 - [x] Chapter 7 — Finetuning
 - [x] Chapter 8 — Dataset Engineering
-- [ ] Chapter 9 — Inference Optimization
+- [x] Chapter 9 — Inference Optimization
 - [ ] Chapter 10 — Architecture and User Feedback
 - [ ] Home page final pass (chapter cards, overview, preface/epilogue essence)
 
