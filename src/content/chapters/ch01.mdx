@@ -1,0 +1,338 @@
+---
+number: 1
+title: "Introduction to Building AI Applications with Foundation Models"
+shortTitle: "Introduction to AI Engineering"
+description: "Why building on top of ready-made models became its own discipline: how language models grew into foundation models, what people actually build with them, how to decide whether you should build, and how the new AI stack differs from classical ML."
+readingTime: 28
+---
+
+import Figure from "../../components/Figure.astro";
+import KeyTakeaways from "../../components/KeyTakeaways.astro";
+import References from "../../components/References.astro";
+import KnowledgeCheck from "../../components/KnowledgeCheck.astro";
+import Ch01Evolution from "../../components/diagrams/Ch01Evolution.astro";
+import Ch01LMTypes from "../../components/diagrams/Ch01LMTypes.astro";
+import Ch01Stack from "../../components/diagrams/Ch01Stack.astro";
+import Ch01Workflow from "../../components/diagrams/Ch01Workflow.astro";
+import { flashcards, quiz, assignments } from "../../data/knowledge/ch01";
+
+If one word explains AI since 2020, it's **scale**. Models grew so large that only a handful of organizations can afford to train them — so those organizations now rent their models out as a service. That single economic fact rewired the whole field: the demand for AI applications exploded at exactly the moment the barrier to building them collapsed. You no longer need to train a model; you adapt one that already exists.
+
+That activity — building applications on top of readily available models — is **AI engineering**, and this chapter explains where it came from, what people build with it, how to decide whether *you* should build, and how the work differs from classical machine learning.
+
+<div class="note">
+<span class="aside-label">Keep in mind</span>
+
+Building applications on ML models isn't new — recommendations, fraud detection, and churn prediction have run on ML for over a decade. What's new is the *kind* of model being built on: huge, general-purpose, and someone else's.
+
+</div>
+
+## The Rise of AI Engineering
+
+ChatGPT and GitHub Copilot felt like they appeared out of nowhere, but they sit at the end of a chain of ideas going back to the 1950s. The chain has three links: language models became *large* language models through self-supervision; large language models became *foundation models* by absorbing other modalities; and foundation models became a platform that anyone can build on.
+
+<Figure num="1.1" caption="Four steps from statistical text prediction to a new engineering discipline — and the enabler behind each transition.">
+  <Ch01Evolution />
+</Figure>
+
+### From language models to large language models
+
+A **language model** encodes statistical information about language: given a context like "My favorite color is ___", it should consider "blue" far more likely than "car". The idea that language is statistically predictable is old — Claude Shannon was modeling English mathematically in the early 1950s, and his concepts (entropy among them) still underpin language modeling today.
+
+#### Tokens, the atoms of a language model
+
+The basic unit a model works with is the **token** — a character, a word, or most often a *piece* of a word (like `-tion`). GPT-4 splits "I can't wait to build AI applications" into nine tokens, breaking "can't" into `can` + `'t`. As a rule of thumb, an average GPT-4 token is about ¾ of an English word, so 100 tokens ≈ 75 words.
+
+Why tokens instead of words or characters? Three reasons:
+
+1. **Meaningful pieces.** "Cooking" splits into "cook" + "ing" — each fragment still carries meaning, unlike single letters.
+2. **Smaller vocabulary.** Fewer unique tokens than unique words means a more efficient model. (Mixtral 8x7B's vocabulary is 32,000 tokens; GPT-4's is 100,256.)
+3. **No unknown words.** A made-up word like "chatgpting" decomposes into familiar pieces ("chatgpt" + "ing"), so the model can still process it.
+
+The set of all tokens a model knows is its **vocabulary**, chosen by the model's developers — like an alphabet, a small set of units composes an enormous space of possible text.
+
+#### Two kinds of language model
+
+<Figure num="1.2" caption="Autoregressive models predict forward only; masked models fill blanks using both directions. Notice the arrows — that's the whole difference.">
+  <Ch01LMTypes />
+</Figure>
+
+- A **masked language model** fills in blanks using context from both sides ("My favorite ___ is blue" → "color"). BERT is the classic example. These shine at *understanding* tasks: sentiment analysis, classification, code debugging — anywhere the full surrounding context matters.
+- An **autoregressive language model** predicts the *next* token from only the preceding ones — and can therefore keep generating token after token indefinitely. This is the type behind today's generative AI, and unless stated otherwise, "language model" in this book means the autoregressive kind.
+
+Because a model composes outputs freely from its finite vocabulary, its outputs are *open-ended* — infinite possible completions from finite parts. A model that can do this is called **generative**.
+
+The most useful mental model: a language model is a **completion machine**. Give it text (a *prompt*); it predicts what comes next. That sounds humble, but a remarkable share of work can be framed as completion — translation ("How are you in French is …"), classification ("Is this email spam? Answer:"), summarization, coding, math. Two caveats follow directly from the framing:
+
+- Completions are **probabilistic predictions**, not guaranteed truths. This single property explains most of what's exciting *and* most of what's maddening about working with these models (Chapter 2 digs into it).
+- Completion ≠ conversation. Ask a raw completion machine a question and it may "complete" you with *another question*. Making models actually respond helpfully takes post-training (also Chapter 2).
+
+#### Self-supervision, the bottleneck-breaker
+
+Here is the chapter's pivotal question: lots of ML model types existed — why did *language models* scale into the ChatGPT moment?
+
+Because language models can be trained with **self-supervision**, and most other models couldn't escape *supervision*. Supervised learning needs labeled examples: AlexNet, which kicked off the deep-learning revolution in 2012, learned from over a million images each hand-labeled into one of 1,000 categories. Labels are expensive (even at cents per image, a million-image dataset costs tens of thousands of dollars — and labeling CT scans or Latin translations costs astronomically more) and they put a hard ceiling on scale.
+
+Self-supervision removes the ceiling: **the data labels itself**. In language modeling, every sentence is its own training set — "I love street food." yields six training pairs, each prefix predicting the next token (with special `<BOS>`/`<EOS>` markers teaching the model where sequences begin and end — the end marker is how a model knows when to stop talking). No human annotation, and the supply of text — books, articles, forums, code — is effectively the internet itself.
+
+<div class="note">
+<span class="aside-label">Terminology</span>
+
+Self-supervised ≠ unsupervised. Self-supervision *infers labels from the input data*; unsupervised learning uses no labels at all.
+
+</div>
+
+With unlimited training data, models grew. "Large" has no fixed definition — model size is usually measured in **parameters** (the variables updated during training), and the goalposts keep moving: GPT-1's 117 million parameters were "large" in 2018, embarrassing by 2019's GPT-2 (1.5 billion), and as the book was written, ~100 billion counted as large. More parameters mean more capacity to learn — which is also why larger models *need* more data: training a huge model on a small dataset just wastes compute that a smaller model could've matched.
+
+### From large language models to foundation models
+
+Humans don't experience the world as text alone, and neither should AI that operates in the real world. So language models absorbed other **modalities** — images first (GPT-4V, Claude 3), then video, 3D, even protein structures. A model handling multiple modalities is **multimodal**; a generative one is a **large multimodal model (LMM)**. Where an LLM predicts the next token from text tokens, a multimodal model conditions on text *and* image tokens together.
+
+The scaling trick generalized too. OpenAI's CLIP was trained with *natural language supervision*: instead of labeling images by hand, they harvested 400 million (image, text) pairs that already co-occurred on the internet — 400× the size of ImageNet, at no labeling cost. (CLIP itself is an **embedding model** — it produces vectors capturing meaning rather than generating text — and such joint embeddings became the backbone of generative multimodal models like Flamingo, LLaVA, and Gemini.)
+
+The word **foundation** signals two things at once:
+
+1. **Generality.** AI research used to be siloed by modality and task — NLP did text, computer vision did images, one model per task. A foundation model handles a *range* of tasks out of the box: the same model translates, classifies sentiment, and writes SQL.
+2. **Build-upon-ability.** Out of the box, a general model may be mediocre at *your* specific job — it can write product descriptions, but not in your brand's voice. So you adapt it. The three workhorse techniques, which structure much of this book:
+   - **Prompt engineering** — craft detailed instructions and examples (Chapter 5)
+   - **RAG** (retrieval-augmented generation) — connect it to a database it can draw on (Chapter 6)
+   - **Finetuning** — train it further on your own data (Chapter 7)
+
+Adapting an existing model is dramatically cheaper than building one — think *ten examples and a weekend* versus *a million examples and six months*. Task-specific models still have real advantages (smaller, faster, cheaper to run), so build-vs-buy stays a live question that recurs throughout the book.
+
+### From foundation models to AI engineering
+
+**AI engineering** is the discipline of building applications on top of foundation models. If ML engineering builds models, AI engineering *leverages* them. Three forces made it (arguably) the fastest-growing engineering discipline:
+
+1. **General-purpose capability.** These models don't just do old tasks better — they do *new* tasks. Anything involving communication (which is nearly everything) became automatable to some degree: writing, images, code, even synthesizing training data for the next generation of models.
+2. **A flood of investment.** Post-ChatGPT, AI costs for some use cases dropped two orders of magnitude in a year; Goldman Sachs projected $200B global AI investment by 2025; a third of S&P 500 companies were citing AI in earnings calls by mid-2023. Whether AI *causes* the stock bump or merely correlates with adaptable companies is an open question — but the money is real.
+3. **Vanishing barrier to entry.** Model-as-a-service turns a frontier model into an API call — no serving infrastructure required. And since AI can write code and accepts instructions in plain English, even non-engineers can ship applications.
+
+Training foundation models remains the privilege of big tech, governments, and heavily funded startups — but as Sam Altman put it in 2022, the big opportunity for everyone else is *adapting* these models. The world agreed: within two years, four open-source AI engineering tools (AutoGPT, Stable Diffusion web UI, LangChain, Ollama) out-starred Bitcoin on GitHub, on track to pass React and Vue.
+
+<div class="note">
+<span class="aside-label">Why the name "AI engineering"?</span>
+
+Not "ML engineering" — that term covers building models, and the work here is different enough to need its own label (though ML engineering works fine as the umbrella). Not "-Ops" terms (MLOps, LLMOps) — the work centers on *engineering models to do what you want*, not just operations. And when the author surveyed twenty practitioners, most preferred "AI engineering" — so the people decided.
+
+</div>
+
+## Foundation Model Use Cases
+
+What do people actually build? Categorizing is hard — AWS uses three buckets (customer experience, employee productivity, process optimization), an O'Reilly survey used eight, and Deloitte and Gartner slice by value captured: cost reduction, process efficiency, growth, innovation — and for 7% of executives surveyed by Gartner in 2023, **business continuity**: adopt or die.
+
+One especially useful lens: a 2023 study (Eloundou et al., "GPTs are GPTs") measured occupations' *exposure* to AI — a task is exposed if AI can cut its completion time by half. Interpreters, translators, tax preparers, web designers, writers, and mathematicians cluster near 100% exposure; cooks, stonemasons, and athletes near zero. That contrast is a good compass for where applications make sense.
+
+From the author's research — interviews with 50 companies plus analysis of 205 popular open-source AI applications — eight categories emerge:
+
+| Category | Consumer flavor | Enterprise flavor |
+|---|---|---|
+| Coding | AI pair programmers | Same — plus migration, docs, tests |
+| Image & video production | Photo/video editing | Ads, presentations, design |
+| Writing | Emails, blog posts | Copywriting, SEO, reports, memos |
+| Education | Tutoring, essay help | Onboarding, upskilling |
+| Conversational bots | General chat, AI companions | Customer support, product copilots |
+| Information aggregation | Summaries, talk-to-your-docs | Meeting digests, market research |
+| Data organization | Photo search, memex | Knowledge management, document processing |
+| Workflow automation | Travel planning, forms | Data extraction, lead generation, invoicing |
+
+Categories overlap — one app can extract structured data from a PDF *and* answer questions about it. And a notable pattern: enterprises prefer lower-risk deployments — internal-facing applications (knowledge management) ship faster than external-facing ones (customer chatbots), and many applications wrap an open-ended model in a *close-ended* task like classification, precisely because close-ended outputs are easier to evaluate.
+
+### Coding
+
+The most popular use case in survey after survey. GitHub Copilot passed $100M annual recurring revenue within two years; specialized tools handle everything from English-to-SQL, screenshot-to-website, and cross-framework code translation to documentation, tests, and commit messages. Will AI replace software engineers? NVIDIA's CEO says stop teaching kids to code; many engineers insist they're irreplaceable. The measured reality (McKinsey): AI roughly doubles productivity on documentation, adds 25–50% on code generation and refactoring, and helps *least* on highly complex tasks. Practitioners also report AI being notably stronger at frontend than backend work. Fewer engineers accomplishing more — and the simple, outsourceable tasks are the ones most disrupted.
+
+### Image and video production
+
+AI's probabilistic nature is a *feature* for creative work — "wrong" often just means "interestingly different". Midjourney hit $200M ARR in 18 months; Adobe Firefly, Runway, Pika Labs, and Sora define the category. Profile-picture generation went from bannable offense (Facebook, 2019) to built-in feature (2023). Enterprises lean on it for ads and marketing: brainstorm, draft, generate seasonal variants, A/B test — meaningful because marketing averages ~11% of company budgets.
+
+### Writing
+
+A natural fit — LLMs are literally trained on text completion, we write constantly, writing is tedious, and a bad suggestion costs nothing to ignore. An MIT randomized study of 453 professionals found ChatGPT cut writing time ~40% and raised quality ~18%, narrowing the gap between stronger and weaker writers most. Enterprises use it for sales outreach, ad copy, reports; products like Grammarly finetune models specifically for fluency and coherence. The dark side: AI is *very* good at SEO, which has spawned content farms pumping out thousands of junk articles a day — one identified site produced 1,200 daily — pointing toward an internet where trust, not content, becomes the scarce resource.
+
+### Education
+
+Schools' first instinct was to ban ChatGPT (New York City and Los Angeles district boards did — then reversed within months). The constructive path is personalization: adapt material to each student's format — read aloud for auditory learners, more animals in the visualizations for animal lovers, math equations translated into code for programmers. Duolingo found lesson personalization the stage of course creation that AI helps most; Khan Academy ships AI teaching assistants; one inventive teacher assigns AI-generated essays *for students to find the errors in*. The risk side is just as vivid: Chegg's share price collapsed from $28 to $2 as students switched to AI directly. The flip: if AI threatens any skill, it's also the cheapest tutor for *learning* any skill.
+
+### Conversational bots
+
+The versatile category: information, brainstorming, companionship, therapy, role-play. Digital companions became startlingly popular; researchers even simulate small societies with groups of bots to study social dynamics. Enterprise-side, customer support bots dominate (cheaper, faster first response), plus product copilots that walk users through painful workflows — insurance claims, taxes, corporate policy. Beyond text: voice assistants, and 3D bots in games — AI-powered smart NPCs can break free of scripted dialogue trees and change game design itself.
+
+### Information aggregation
+
+Salesforce's 2023 research found 74% of generative-AI users use it to distill and summarize. "Talk-to-your-docs" is the consumer staple — contracts, disclosures, papers. In enterprises, summarization quietly restructures work: Instacart's most popular internal prompt template, "Fast Breakdown", condenses meeting notes and Slack threads into facts, open questions, and action items — which then flow automatically into project trackers. Leaner information flow means less middle-management overhead.
+
+### Data organization
+
+We will only ever produce more photos, logs, contracts, and PDFs — almost all unstructured. AI auto-captions images and videos, matches text queries to visuals (Google Photos), runs data analysis, and extracts structured fields from receipts, licenses, contracts, and charts. Intelligent document processing (IDP) was projected to reach $12.8B by 2030, growing ~33% yearly.
+
+### Workflow automation
+
+The end state: AI doing the boring parts end-to-end — refunds, bookings, forms, invoicing, lead management, data entry. Many tasks need *external tools* (search the web, make a call, write to a calendar), and an AI that can plan and use tools is an **agent** — the obsession-grade topic of Chapter 6. A self-referential case worth noting: AI synthesizing training data to improve AI (Chapter 8).
+
+## Planning AI Applications
+
+A cool demo is easy; a profitable product is hard. If you're building to learn, skip the ceremony and build. If you're building for a living, work through four questions first.
+
+### Use case evaluation
+
+**Why build this at all?** Risk-and-opportunity levels, from highest to lowest:
+
+1. **Existential** — competitors with AI could make you obsolete (think document-heavy businesses: financial analysis, insurance, creative agencies). If this is you, AI is priority #1, and probably built in-house rather than outsourced to a potential competitor.
+2. **Profit and productivity** — the common case: cheaper acquisition (better copy), better retention (better support), leaner ops. Plenty of buy-not-build options here.
+3. **Not getting left behind** — exploratory investment in understanding the technology. Legitimate if you can afford it (Kodak, Blockbuster, and BlackBerry could not afford *not* to); smaller startups may need to stay focused instead.
+
+**What role does AI play?** Three axes (from Apple's human-interface guidance for ML):
+
+- **Critical vs. complementary** — Face ID dies without AI; Gmail survives without Smart Compose. The more critical, the higher the reliability bar.
+- **Reactive vs. proactive** — chatbots respond to requests (must be fast); Google Maps traffic alerts appear unprompted (can be precomputed, but must clear a *higher quality bar* — uninvited and wrong is intrusive).
+- **Dynamic vs. static** — Face ID updates continually as faces change; per-user personalization (like ChatGPT's memory) is dynamic. Static features update only with releases, one shared model for everyone.
+
+**What role do humans play?** AI can draft for human agents, handle only simple requests, or fly solo — this is the *human-in-the-loop* spectrum. Microsoft's **Crawl-Walk-Run**: mandatory human involvement → AI interacts with internal employees → AI interacts with external users. Promotion is earned by measured quality: when 95% of AI-suggested responses get used verbatim by your agents, simple requests can probably go direct.
+
+**Is the product defensible?** The low entry barrier cuts both ways — easy for you means easy for competitors. Worse, a thin layer over someone else's model can be *subsumed* by it: build PDF-parsing on the assumption that frontier models can't parse PDFs, and your moat evaporates the day they can. One VC's recurring worry: "this whole startup could be three engineers and two weeks at Google." Of the three classic moats — **technology, data, distribution** — technology is now commoditized by shared foundation models and distribution belongs to incumbents, so the startup's realistic moat is **data**: get to market first, capture usage data (the "data flywheel"), and let it compound. History offers hope — Calendly, Mailchimp, and Photoroom all out-executed the giant whose feature they "should have been".
+
+### Setting expectations
+
+Define success *measurably*, in layers:
+
+- **Business metrics** first: what % of support messages automated? How much faster the response? How much labor saved? (And track customer satisfaction — answering *more* messages isn't the same as making users happy.)
+- A **usefulness threshold** before anything ships: quality metrics, latency metrics — **TTFT** (time to first token), **TPOT** (time per output token), total latency — cost per inference request, plus interpretability and fairness where relevant. Anchor thresholds to your reality: if humans currently take an hour to respond, "faster than an hour" may be plenty.
+
+### Milestone planning
+
+Evaluate off-the-shelf models first — the stronger they are, the less work remains (automating 60% of tickets is a different project if the base model already handles 30% than if it handles none). Expect evaluation to *change your goals*, sometimes to "don't build this."
+
+Then respect the **last mile challenge**: foundation models make the first 80% deceptively fast, and the remainder brutally slow. LinkedIn reached 80% of their target experience in one month — then spent four more months pushing past 95%, grinding through hallucinations and product kinks, each additional 1% slower than the last. Demos mislead; budget accordingly.
+
+### Maintenance
+
+Committing to foundation models means boarding a bullet train. Changes come in three difficulties:
+
+- **Good but disruptive:** capabilities improve, context windows grow, inference prices collapse (MMLU performance per dollar improved relentlessly 2022→2024). Great — except the best option today may be the worst tomorrow. Build in-house because APIs are pricey, and providers halve prices in three months; commit to a vendor, and they fail to raise their next round.
+- **Adaptable with infrastructure:** providers converge on similar APIs, so swapping models is mechanically easy — but every model has quirks, so prompts, workflows, and data need re-tuning. Survivable *if* you've invested in versioning and evaluation.
+- **Hard or fatal:** regulation. AI compute, talent, and data are national-security concerns; GDPR compliance cost businesses an estimated $9B; export rules can cut off your GPU supply overnight. And IP law around AI remains unsettled — if your product is built on a model trained on other people's data, is your IP yours? IP-heavy companies (game studios, notably) hesitate for exactly this reason.
+
+## The AI Engineering Stack
+
+The daily flood of new tools, models, and techniques is overwhelming — the antidote is to see the stable structure underneath. AI engineering evolved out of ML engineering (when companies start experimenting with foundation models, the existing ML team usually leads), and some companies treat the two as one job while others split them. Either way, the work organizes into three layers.
+
+### Three layers of the AI stack
+
+<Figure num="1.3" caption="The three layers of the AI engineering stack. Application development boomed; infrastructure barely changed.">
+  <Ch01Stack />
+</Figure>
+
+- **Application development** — the layer almost everyone starts in, and where the post-ChatGPT explosion happened: prompting models well, supplying context, evaluating rigorously, and building good interfaces.
+- **Model development** — tooling for training, finetuning, and inference optimization, plus dataset engineering. Classic ML territory.
+- **Infrastructure** — serving, data and compute management, monitoring. The bottom of the stack, and tellingly, the layer that changed *least*.
+
+The author's analysis of 920 AI repositories (500+ GitHub stars, March 2024) confirms the shape: applications and app-dev tooling spiked dramatically through 2023 while infrastructure grew modestly. The lesson cuts both ways — enormous churn up top, but the fundamentals beneath are stable, and a decade of ML engineering wisdom still applies: map business metrics to ML metrics, experiment systematically, make things faster and cheaper, close the production feedback loop. What changed is *what you experiment with*: hyperparameters before; models, prompts, retrieval algorithms, and sampling variables now.
+
+### AI engineering versus ML engineering
+
+Three differences define the new discipline:
+
+1. **Model adaptation replaces model development.** You start from someone else's trained model, so the work shifts from modeling-and-training toward adapting and evaluating.
+2. **Everything is bigger.** More compute, more GPUs, higher latency — so inference optimization matters more, and engineers who can drive large clusters are scarce (one Fortune 500 AI head: his team knows 10 GPUs, not 1,000).
+3. **Outputs are open-ended.** Flexibility for users, nightmare for evaluators — evaluation becomes the central hard problem.
+
+Adaptation techniques split into two camps you'll meet throughout the book:
+
+- **Prompt-based techniques** adapt a model *without touching its weights* — cheap to start, little data needed, easy to try many models. Often enough; sometimes not — complex tasks or strict performance targets can outrun what prompting alone delivers.
+- **Finetuning** *updates the weights* — more complex, more data-hungry, but can improve quality, latency, and cost in ways prompting can't, including teaching genuinely new tasks.
+
+<div class="warn">
+<span class="aside-label">Words people misuse</span>
+
+**Training** always changes weights — but not every weight change is training (quantization changes weights; it isn't training). **Pre-training** starts from random weights and eats ~98% of total compute for a model like InstructGPT. **Finetuning** continues from existing weights. **Post-training** is conceptually the same as finetuning — the word usually signals *who* does it (model developers before release vs. application developers after). And feeding your journal into ChatGPT is **prompt engineering**, not "training" — no weights changed, whatever the article headline said.
+
+</div>
+
+**Within model development**, the emphasis shifts: modeling-and-training knowledge (gradient descent, architectures) downgrades from must-have to nice-to-have — valuable for troubleshooting, not required for shipping. Dataset engineering pivots from feature engineering on tabular data to deduplication, tokenization, context retrieval, and quality control on unstructured data — and annotation gets *harder* because outputs are open-ended (grading an essay vs. checking a spam label). Inference optimization jumps from important to critical: autoregressive generation is sequential — at 10ms per token, 100 tokens already takes a second, far above the ~100ms users expect from the internet.
+
+**Within application development**, three responsibilities rise:
+
+- **Evaluation** — needed to pick models, benchmark progress, gate deployment, and catch production issues. The Gemini launch made the stakes vivid: Gemini Ultra claimed 90.04% on MMLU using CoT@32 prompting (32 examples) versus GPT-4's 86.4% five-shot — but compared five-shot to five-shot, GPT-4 scored higher. Same models, different prompting, opposite conclusion.
+- **Prompt engineering and context construction** — getting desired behavior without weight changes: instructions, examples, necessary context, memory management for long tasks (Chapters 5–6).
+- **AI interface** — before foundation models, AI hid inside products (fraud checks in Stripe, recommendations in Netflix). Now standalone AI products are normal, and interfaces multiplied: web/desktop/mobile apps, browser extensions, Slack/Discord bots, plug-in APIs (which agents can also use), voice, and embodied AR/VR. Chat interfaces also make user feedback abundant-but-unstructured — a design problem Chapter 10 takes up.
+
+### AI engineering versus full-stack engineering
+
+All this interface emphasis pulls AI engineering toward full-stack development. Python's monopoly is loosening — JavaScript tooling (LangChain.js, Transformers.js, Vercel's AI SDK) is meeting frontend engineers where they live. And the workflow itself inverted:
+
+<Figure num="1.4" caption="Foundation models flip the build order: product first, models and data only after the product earns it.">
+  <Ch01Workflow />
+</Figure>
+
+Traditional ML: gather data, train a model, *then* build the product — with ML engineers often far from product decisions. AI engineering: build the product *first* on an existing model; invest in data and models once it shows promise. The discipline rewards whoever can demo, get feedback, and iterate fastest — which is why full-stack instincts have become an AI engineering superpower.
+
+<KeyTakeaways
+  items={[
+    "AI engineering exists because of one economic shift: a few organizations train enormous models and rent them out, so everyone else builds <strong>on top of</strong> models instead of training them.",
+    "A language model is a <strong>completion machine</strong> over tokens — and a shocking range of tasks (translation, classification, coding) can be framed as completion.",
+    "<strong>Self-supervision</strong> broke the data-labeling bottleneck — text labels itself — and that, more than any architecture trick, is why language models scaled into LLMs.",
+    "Foundation models are <strong>general-purpose and multimodal</strong>; you specialize them via prompt engineering, RAG, or finetuning — adaptation is the heart of the discipline.",
+    "Three forces drive the field: new capabilities → new applications, massive investment, and a near-zero barrier to entry (model-as-a-service APIs).",
+    "Use cases cluster into eight families — coding, media, writing, education, bots, information aggregation, data organization, workflow automation — and enterprises start with internal, close-ended, lower-risk deployments.",
+    "Before building: check the motivation (existential / profit / exploration), define AI's role (critical?, proactive?, dynamic?) and the humans' role (crawl-walk-run), and be honest about defensibility — <strong>data is the startup's moat</strong>, not technology.",
+    "Demos lie: the <strong>last mile</strong> (80% → 95%+) routinely takes several times longer than the first 80%. Set usefulness thresholds (quality, TTFT/TPOT latency, cost) before shipping.",
+    "The stack has three layers — application development, model development, infrastructure — and the bottom layer changed least. Old ML wisdom still applies.",
+    "Versus ML engineering: less model-building, more <strong>adaptation and evaluation</strong>; bigger models make inference optimization critical; open-ended outputs make evaluation the hardest problem.",
+    "The workflow inverted — <strong>product first</strong>, data and models later — which is why fast iteration and full-stack skills now define great AI engineers.",
+  ]}
+/>
+
+<References
+  items={[
+    {
+      title: "The Rise of the AI Engineer",
+      url: "https://www.latent.space/p/ai-engineer",
+      type: "Blog",
+      source: "swyx & Alessio Fanelli · Latent Space",
+      why: "The essay that crystallized 'AI engineer' as a role — the book's Figure on the inverted workflow comes from here. Great for understanding where you'd fit in the job market.",
+    },
+    {
+      title: "Intro to Large Language Models",
+      url: "https://www.youtube.com/watch?v=zjkBMFhNj_g",
+      type: "Video",
+      source: "Andrej Karpathy",
+      why: "A one-hour, zero-prerequisite walkthrough of what an LLM actually is — the perfect visual companion to this chapter's language-model sections.",
+    },
+    {
+      title: "On the Opportunities and Risks of Foundation Models",
+      url: "https://arxiv.org/abs/2108.07258",
+      type: "Paper",
+      source: "Bommasani et al. · Stanford CRFM",
+      why: "The 200-page report that coined 'foundation model'. Skim Section 1 to see exactly why the term emphasizes both centrality and incompleteness.",
+    },
+    {
+      title: "GPTs are GPTs: An Early Look at the Labor Market Impact Potential of LLMs",
+      url: "https://arxiv.org/abs/2303.10130",
+      type: "Paper",
+      source: "Eloundou et al. · OpenAI",
+      why: "The occupation-exposure study cited in this chapter — useful raw material when you're evaluating which use cases AI is genuinely good for.",
+    },
+    {
+      title: "Generative AI for Everyone",
+      url: "https://www.deeplearning.ai/courses/generative-ai-for-everyone/",
+      type: "Course",
+      source: "Andrew Ng · DeepLearning.AI",
+      why: "A gentle, non-technical complement covering the same 'what can AI do, and what should we build' questions — good if the planning sections felt abstract.",
+    },
+    {
+      title: "Building LLM applications for production",
+      url: "https://huyenchip.com/2023/04/11/llm-engineering.html",
+      type: "Blog",
+      source: "Chip Huyen",
+      why: "The author's earlier essay that grew into this book — a compact preview of the production challenges Chapters 3–10 unpack.",
+    },
+  ]}
+/>
+
+<KnowledgeCheck
+  chapter="ch01"
+  flashcards={flashcards}
+  quiz={quiz}
+  assignments={assignments}
+/>
