@@ -1,0 +1,39 @@
+---
+import type { MarkdownHeading } from "astro";
+
+interface Props {
+  headings: MarkdownHeading[];
+  variant: "desktop" | "mobile";
+}
+
+const { headings, variant } = Astro.props;
+const items = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+{
+  variant === "desktop" ? (
+    <aside class="toc" aria-label="On this page">
+      <p class="toc-label">On this page</p>
+      <ol id="toc-list">
+        {items.map((h) => (
+          <li class={`depth-${h.depth}`}>
+            <a href={`#${h.slug}`} data-target={h.slug}>
+              {h.text}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </aside>
+  ) : (
+    <details class="toc-mobile">
+      <summary>On this page</summary>
+      <ol>
+        {items.map((h) => (
+          <li class={`depth-${h.depth}`}>
+            <a href={`#${h.slug}`}>{h.text}</a>
+          </li>
+        ))}
+      </ol>
+    </details>
+  )
+}

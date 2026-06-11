@@ -1,0 +1,90 @@
+---
+export interface Reference {
+  title: string;
+  url: string;
+  type: "Blog" | "Video" | "Course" | "Docs" | "Paper" | "Tool";
+  source: string;
+  why: string;
+}
+
+interface Props {
+  items: Reference[];
+}
+
+const { items } = Astro.props;
+---
+
+<section class="refs" aria-label="Additional references">
+  <h2 id="additional-references">Going Deeper</h2>
+  <p class="refs-intro">
+    Hand-picked follow-ups if a topic in this chapter grabbed you — each one is
+    credible, current, and worth the time.
+  </p>
+  <ul>
+    {
+      items.map((ref) => (
+        <li>
+          <div class="ref-head">
+            <span class={`pill type-${ref.type.toLowerCase()}`}>{ref.type}</span>
+            <a href={ref.url} rel="noopener" target="_blank">
+              {ref.title}
+            </a>
+            <span class="ref-source">{ref.source}</span>
+          </div>
+          <p class="ref-why">{ref.why}</p>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .refs-intro {
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .refs ul {
+    list-style: none;
+    margin: 1.2rem 0 0;
+    padding: 0;
+  }
+  .refs li {
+    padding: 1rem 1.2rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    background: var(--bg-raised);
+    margin-bottom: 0.6rem;
+  }
+  .ref-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .ref-head a {
+    font-weight: 500;
+  }
+  .ref-source {
+    color: var(--ink-faint);
+    font-size: 0.82rem;
+  }
+  .ref-why {
+    margin: 0.35rem 0 0;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+  .pill.type-video {
+    background: var(--warn-soft);
+    color: var(--warn-ink);
+  }
+  .pill.type-course {
+    background: var(--good-soft);
+    color: var(--good-ink);
+  }
+  .pill.type-blog,
+  .pill.type-paper {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+  }
+</style>

@@ -1,0 +1,43 @@
+---
+import Flashcards from "./Flashcards";
+import Quiz from "./Quiz";
+import Assignments from "./Assignments.astro";
+import type { Card } from "./Flashcards";
+import type { Question } from "./Quiz";
+import type { Assignment } from "./Assignments.astro";
+
+interface Props {
+  chapter: string; // e.g. "ch01" — used as the localStorage key
+  flashcards: Card[];
+  quiz: Question[];
+  assignments: Assignment[];
+}
+
+const { chapter, flashcards, quiz, assignments } = Astro.props;
+---
+
+<section class="kc-section" aria-label="Test your knowledge" data-pagefind-ignore>
+  <h2 id="test-your-knowledge">Test Your Knowledge</h2>
+  <p class="kc-intro">
+    Your progress here is saved in this browser — leave and come back anytime.
+  </p>
+
+  <h3 id="flashcards">Flashcards</h3>
+  <Flashcards client:visible cards={flashcards} storageKey={chapter} />
+
+  <h3 id="quiz">Quiz</h3>
+  <Quiz client:visible questions={quiz} storageKey={chapter} />
+
+  <Assignments items={assignments} />
+</section>
+
+<style>
+  .kc-intro {
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+    margin-top: -0.4rem;
+  }
+  .kc-section h3 {
+    margin-top: 2.4rem;
+  }
+</style>

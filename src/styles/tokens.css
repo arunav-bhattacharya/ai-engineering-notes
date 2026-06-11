@@ -1,0 +1,66 @@
+/* Design tokens. One accent, warm neutrals, editorial restraint. */
+
+:root {
+  --font-sans: "Google Sans Flex", "Google Sans", "Segoe UI", system-ui,
+    -apple-system, sans-serif;
+  --font-code: "Google Sans Code", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 14px;
+
+  --measure: 70ch;
+  --header-h: 3.5rem;
+
+  --bg: #faf9f7;
+  --bg-raised: #ffffff;
+  --bg-inset: #f2f0ec;
+  --ink: #21242a;
+  --ink-soft: #4d535b;
+  --ink-faint: #7d838b;
+  --line: #e5e2dc;
+  --line-strong: #d4d0c8;
+  --accent: #0d6b63;
+  --accent-strong: #0a5650;
+  --accent-soft: #e4f0ee;
+  --accent-ink: #0a5650;
+  --warn-soft: #faeede;
+  --warn-ink: #8a4b14;
+  --good-soft: #e7f2e4;
+  --good-ink: #2c6b2f;
+  --bad-soft: #f9e8e6;
+  --bad-ink: #9c3328;
+
+  --shadow-s: 0 1px 2px rgb(33 36 42 / 0.06);
+  --shadow-m: 0 2px 10px rgb(33 36 42 / 0.08);
+  --shadow-l: 0 12px 40px rgb(33 36 42 / 0.16);
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #15171c;
+  --bg-raised: #1c1f25;
+  --bg-inset: #23262d;
+  --ink: #e7e5e1;
+  --ink-soft: #b2b0ac;
+  --ink-faint: #828079;
+  --line: #2c2f36;
+  --line-strong: #3a3e46;
+  --accent: #5cc2b5;
+  --accent-strong: #79d2c7;
+  --accent-soft: #18302d;
+  --accent-ink: #8ad8ce;
+  --warn-soft: #332618;
+  --warn-ink: #e0a96b;
+  --good-soft: #1d2b1b;
+  --good-ink: #95c98f;
+  --bad-soft: #33201d;
+  --bad-ink: #e09a90;
+
+  --shadow-s: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-m: 0 2px 10px rgb(0 0 0 / 0.45);
+  --shadow-l: 0 12px 40px rgb(0 0 0 / 0.6);
+
+  color-scheme: dark;
+}

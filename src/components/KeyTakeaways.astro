@@ -1,0 +1,44 @@
+---
+interface Props {
+  items: string[];
+}
+
+const { items } = Astro.props;
+---
+
+<section class="takeaways" aria-label="Key takeaways">
+  <h2 id="key-takeaways">Key Takeaways</h2>
+  <ol>
+    {items.map((item) => <li set:html={item} />)}
+  </ol>
+</section>
+
+<style>
+  .takeaways ol {
+    list-style: none;
+    counter-reset: tk;
+    margin: 0;
+    padding: 0;
+  }
+  .takeaways li {
+    counter-increment: tk;
+    position: relative;
+    padding: 0.85rem 1.1rem 0.85rem 3.2rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    background: var(--bg-raised);
+    margin-bottom: 0.6rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .takeaways li::before {
+    content: counter(tk, decimal-leading-zero);
+    position: absolute;
+    left: 1.1rem;
+    top: 0.95rem;
+    font-size: 0.78rem;
+    font-weight: 650;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+</style>

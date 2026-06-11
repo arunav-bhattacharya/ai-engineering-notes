@@ -1,0 +1,218 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import Sidebar from "../components/Sidebar.astro";
+
+const base = import.meta.env.BASE_URL;
+const chapters = (await getCollection("chapters")).sort(
+  (a, b) => a.data.number - b.data.number,
+);
+const totalMinutes = chapters.reduce((sum, c) => sum + c.data.readingTime, 0);
+---
+
+<Base
+  title="AI Engineering — Field Notes"
+  description="Chapter-by-chapter study notes on AI Engineering by Chip Huyen: foundation models, evaluation, prompt engineering, RAG, agents, finetuning, dataset engineering, inference optimization, and AI system architecture."
+  withSidebarToggle
+>
+  <div class="shell">
+    <Sidebar currentSlug="home" />
+    <main class="content">
+      <div class="prose">
+        <p class="kicker">Field notes · {chapters.length} chapters · ~{Math.round(totalMinutes / 60)}h total</p>
+        <h1>AI Engineering, distilled chapter by chapter</h1>
+        <p class="lede">
+          Study notes on <em>AI Engineering: Building Applications with
+          Foundation Models</em> by Chip Huyen — every chapter explained from
+          first principles, with diagrams, flashcards, quizzes, and hands-on
+          assignments. Written for beginners, without dumbing down the advanced
+          parts.
+        </p>
+
+        <div class="home-actions">
+          {
+            chapters.length > 0 && (
+              <a class="btn primary" href={`${base}/chapters/${chapters[0].id}/`}>
+                Start with Chapter 1 →
+              </a>
+            )
+          }
+          <a
+            class="btn"
+            href="https://www.oreilly.com/library/view/ai-engineering/9781098166298/"
+            rel="noopener"
+            target="_blank"
+          >
+            Get the actual book
+          </a>
+        </div>
+
+        <section class="how">
+          <h2 id="how-to-use">How to use these notes</h2>
+          <ul>
+            <li>
+              <strong>Read in order if you're new.</strong> The book builds
+              deliberately: what foundation models are → how to evaluate them →
+              how to adapt them (prompts, context, finetuning) → how to serve
+              them well. Later chapters assume the earlier vocabulary.
+            </li>
+            <li>
+              <strong>Each chapter ends with a workout.</strong> Key takeaways
+              for review, flashcards and a quiz for recall, and assignments
+              that turn reading into skill. Progress saves in your browser.
+            </li>
+            <li>
+              <strong>Search anything</strong> with <code>⌘K</code> /
+              <code>Ctrl K</code> — every section is indexed.
+            </li>
+            <li>
+              <strong>These notes complement the book, not replace it.</strong>
+              They compress ~500 pages of nuance; the book carries the full
+              argument, references, and war stories.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 id="chapters">The chapters</h2>
+          <div class="chapter-grid">
+            {
+              chapters.map((ch) => (
+                <a
+                  class="chapter-card"
+                  href={`${base}/chapters/${ch.id}/`}
+                  data-chapter={ch.id}
+                >
+                  <div class="card-top">
+                    <span class="card-num">
+                      {String(ch.data.number).padStart(2, "0")}
+                    </span>
+                    <span class="card-time">{ch.data.readingTime} min</span>
+                    <svg
+                      class="card-done"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      style="display:none"
+                    >
+                      <path d="m4 12.5 5.5 5.5L20 6.5" />
+                    </svg>
+                  </div>
+                  <h3>{ch.data.shortTitle}</h3>
+                  <p>{ch.data.description}</p>
+                </a>
+              ))
+            }
+          </div>
+        </section>
+
+        <section class="about-book">
+          <h2 id="about-the-book">About the book</h2>
+          <p>
+            <em>AI Engineering</em> (O&rsquo;Reilly, 2025) is Chip Huyen&rsquo;s
+            follow-up to <em>Designing Machine Learning Systems</em>. Its core
+            claim: building applications on top of foundation models is a new
+            discipline — closer to product engineering than to classical ML —
+            because the model already exists and the work shifts to adaptation,
+            evaluation, and systems. The book is framework-agnostic and focuses
+            on ideas that outlive any particular tool, which is exactly what
+            makes it worth studying carefully.
+          </p>
+          <p>
+            The preface positions the book around questions rather than
+            recipes: Should you even build this with AI? How do you know your
+            system works? Prompting, RAG, or finetuning? The epilogue's parting
+            advice echoes through every chapter — the fundamentals stay stable
+            while the tooling churns, so invest in fundamentals.
+          </p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document
+      .querySelectorAll<HTMLAnchorElement>(".chapter-card[data-chapter]")
+      .forEach((card) => {
+        if (localStorage.getItem(`aie:read:${card.dataset.chapter}`)) {
+          const check = card.querySelector<SVGElement>(".card-done");
+          if (check) check.style.display = "block";
+        }
+      });
+  </script>
+</Base>
+
+<style>
+  .home-actions {
+    display: flex;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    margin: 0 0 1.5rem;
+  }
+  .home-actions .btn {
+    text-decoration: none;
+    padding: 0.65rem 1.2rem;
+  }
+  .chapter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+    gap: 0.8rem;
+  }
+  .chapter-card {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-l);
+    background: var(--bg-raised);
+    padding: 1.1rem 1.2rem;
+    color: var(--ink);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .chapter-card:hover {
+    text-decoration: none;
+    border-color: var(--accent);
+    box-shadow: var(--shadow-m);
+  }
+  .card-top {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+  .card-num {
+    font-size: 0.8rem;
+    font-weight: 650;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .card-time {
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    margin-left: auto;
+  }
+  .card-done {
+    color: var(--good-ink);
+  }
+  .chapter-card h3 {
+    margin: 0.5rem 0 0.35rem;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .chapter-card p {
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .how li {
+    margin-bottom: 0.7rem;
+  }
+</style>

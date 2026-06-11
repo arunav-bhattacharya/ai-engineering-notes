@@ -1,0 +1,119 @@
+---
+export interface Assignment {
+  title: string;
+  difficulty: "Starter" | "Intermediate" | "Advanced";
+  time: string;
+  brief: string;
+  steps: string[];
+  deliverable: string;
+}
+
+interface Props {
+  items: Assignment[];
+}
+
+const { items } = Astro.props;
+---
+
+<div class="assignments">
+  <h3 id="assignments">Assignments</h3>
+  <p class="assign-intro">
+    Reading builds familiarity; building builds understanding. Pick at least
+    one.
+  </p>
+  {
+    items.map((a, i) => (
+      <details class="assign">
+        <summary>
+          <span class="assign-num">{String(i + 1).padStart(2, "0")}</span>
+          <span class="assign-title">{a.title}</span>
+          <span class={`pill diff-${a.difficulty.toLowerCase()}`}>
+            {a.difficulty}
+          </span>
+          <span class="assign-time">{a.time}</span>
+        </summary>
+        <div class="assign-body">
+          <p>{a.brief}</p>
+          <ol>
+            {a.steps.map((s) => (
+              <li set:html={s} />
+            ))}
+          </ol>
+          <p class="deliverable">
+            <strong>Deliverable:</strong> {a.deliverable}
+          </p>
+        </div>
+      </details>
+    ))
+  }
+</div>
+
+<style>
+  .assign-intro {
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+  }
+  .assign {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    background: var(--bg-raised);
+    margin-bottom: 0.6rem;
+  }
+  .assign summary {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.8rem 1.1rem;
+    cursor: pointer;
+    list-style: none;
+    flex-wrap: wrap;
+  }
+  .assign summary::-webkit-details-marker {
+    display: none;
+  }
+  .assign-num {
+    font-size: 0.78rem;
+    font-weight: 650;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .assign-title {
+    font-weight: 500;
+    font-size: 0.95rem;
+    flex: 1;
+    min-width: 12rem;
+  }
+  .assign-time {
+    color: var(--ink-faint);
+    font-size: 0.8rem;
+  }
+  .pill.diff-starter {
+    background: var(--good-soft);
+    color: var(--good-ink);
+  }
+  .pill.diff-intermediate {
+    background: var(--warn-soft);
+    color: var(--warn-ink);
+  }
+  .pill.diff-advanced {
+    background: var(--bad-soft);
+    color: var(--bad-ink);
+  }
+  .assign-body {
+    padding: 0 1.1rem 1rem;
+    font-size: 0.92rem;
+    border-top: 1px solid var(--line);
+  }
+  .assign-body > p:first-child {
+    margin-top: 0.9rem;
+  }
+  .assign-body li {
+    margin-bottom: 0.35rem;
+  }
+  .deliverable {
+    background: var(--bg-inset);
+    border-radius: var(--radius-s);
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 0;
+  }
+</style>

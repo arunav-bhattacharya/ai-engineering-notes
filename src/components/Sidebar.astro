@@ -1,0 +1,76 @@
+---
+import { getCollection } from "astro:content";
+
+interface Props {
+  currentSlug?: string;
+}
+
+const { currentSlug } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const chapters = (await getCollection("chapters")).sort(
+  (a, b) => a.data.number - b.data.number,
+);
+---
+
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<nav class="sidebar" id="sidebar" aria-label="Chapters">
+  <p class="nav-group-label">Start here</p>
+  <a class={`chapter-link ${currentSlug === "home" ? "active" : ""}`} href={`${base}/`}>
+    <span class="num">◈</span> Overview &amp; how to use
+  </a>
+  <p class="nav-group-label">Chapters</p>
+  {
+    chapters.map((ch) => (
+      <a
+        class={`chapter-link ${currentSlug === ch.id ? "active" : ""}`}
+        href={`${base}/chapters/${ch.id}/`}
+        data-chapter={ch.id}
+      >
+        <span class="num">{ch.data.number}</span>
+        {ch.data.shortTitle}
+        <svg
+          class="done"
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          style="display:none"
+        >
+          <path d="m4 12.5 5.5 5.5L20 6.5" />
+        </svg>
+      </a>
+    ))
+  }
+</nav>
+
+<script>
+  // mark chapters the reader has finished (set by the chapter page at ~85% scroll)
+  document
+    .querySelectorAll<HTMLAnchorElement>(".chapter-link[data-chapter]")
+    .forEach((link) => {
+      if (localStorage.getItem(`aie:read:${link.dataset.chapter}`)) {
+        const check = link.querySelector<SVGElement>(".done");
+        if (check) check.style.display = "block";
+      }
+    });
+
+  const sidebar = document.getElementById("sidebar");
+  const backdrop = document.getElementById("sidebar-backdrop");
+  const toggle = document.getElementById("sidebar-toggle");
+  const close = () => {
+    sidebar?.classList.remove("open");
+    backdrop?.classList.remove("open");
+    toggle?.setAttribute("aria-expanded", "false");
+  };
+  toggle?.addEventListener("click", () => {
+    const open = sidebar?.classList.toggle("open");
+    backdrop?.classList.toggle("open", !!open);
+    toggle.setAttribute("aria-expanded", String(!!open));
+  });
+  backdrop?.addEventListener("click", close);
+  addEventListener("keydown", (e) => e.key === "Escape" && close());
+</script>

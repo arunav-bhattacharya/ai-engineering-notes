@@ -1,0 +1,11 @@
+---
+import Search from "astro-pagefind/components/Search.astro";
+---
+
+<dialog id="search-modal" class="search-modal" aria-label="Search the notes">
+  <Search
+    id="search"
+    className="pagefind-ui"
+    uiOptions={{ showImages: false, autofocus: true }}
+  />
+</dialog>
