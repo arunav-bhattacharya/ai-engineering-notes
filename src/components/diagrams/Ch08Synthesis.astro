@@ -1,0 +1,37 @@
+<svg viewBox="0 0 720 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The data synthesis landscape">
+  <text x="40" y="30" font-size="13.5" font-weight="600" fill="var(--ink)">Why synthesize: quantity at scale · targeted coverage · sometimes higher quality · privacy · distillation</text>
+
+  <!-- traditional -->
+  <rect x="40" y="50" width="310" height="170" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="195" y="76" font-size="13" font-weight="600" text-anchor="middle" fill="var(--ink)">Traditional techniques</text>
+  <text x="54" y="100" font-size="11" font-weight="600" fill="var(--ink)">Rule-based / procedural</text>
+  <text x="54" y="118" font-size="10.5" fill="var(--ink-soft)">· templates (transactions, invoices, equations)</text>
+  <text x="54" y="134" font-size="10.5" fill="var(--ink-soft)">· transformations: flip/crop images, swap synonyms,</text>
+  <text x="62" y="150" font-size="10.5" fill="var(--ink-soft)">gender-swap to counter bias, perturbation/noise</text>
+  <text x="54" y="174" font-size="11" font-weight="600" fill="var(--ink)">Simulation</text>
+  <text x="54" y="192" font-size="10.5" fill="var(--ink-soft)">· virtual experiments: self-driving edge cases, robot</text>
+  <text x="62" y="208" font-size="10.5" fill="var(--ink-soft)">motion, rare financial events, climate scenarios</text>
+
+  <!-- AI-powered -->
+  <rect x="370" y="50" width="310" height="170" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+  <text x="525" y="76" font-size="13" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">AI-powered techniques</text>
+  <text x="384" y="100" font-size="10.5" fill="var(--ink-soft)">· paraphrase &amp; translate (15K math problems → 400K)</text>
+  <text x="384" y="118" font-size="10.5" fill="var(--ink-soft)">· simulate APIs and humans (self-play: ~180 years of</text>
+  <text x="392" y="134" font-size="10.5" fill="var(--ink-soft)">games per day)</text>
+  <text x="384" y="152" font-size="10.5" fill="var(--ink-soft)">· instruction synthesis: topics → subtopics → pairs</text>
+  <text x="392" y="168" font-size="10.5" fill="var(--ink-soft)">(UltraChat) · seed examples → 52K pairs (Alpaca)</text>
+  <text x="384" y="186" font-size="10.5" fill="var(--ink-soft)">· reverse instruction: real high-quality content,</text>
+  <text x="392" y="202" font-size="10.5" fill="var(--ink-soft)">AI writes the prompt that would elicit it</text>
+
+  <!-- verification -->
+  <rect x="40" y="240" width="640" height="80" rx="10" fill="var(--bg-raised)" stroke="var(--line)" />
+  <text x="58" y="264" font-size="12" font-weight="600" fill="var(--ink)">Verify before training — people synthesize what they can verify</text>
+  <text x="58" y="284" font-size="10.5" fill="var(--ink-soft)">functional correctness (run the code, back-translate the translation) · AI judges &amp; specialized scorers · factual-consistency filters</text>
+  <text x="58" y="302" font-size="10.5" fill="var(--ink-soft)">heuristics: drop repetitive / too short / too long / same-instruction-different-response examples · topic &amp; anomaly filters</text>
+
+  <!-- limitations -->
+  <rect x="40" y="336" width="640" height="80" rx="10" fill="var(--warn-soft)" stroke="var(--warn-ink)" />
+  <text x="58" y="360" font-size="12" font-weight="600" fill="var(--warn-ink)">Four limits of synthetic data</text>
+  <text x="58" y="380" font-size="10.5" fill="var(--ink-soft)">quality control is hard · imitation can be superficial (style without substance — and can teach the student to hallucinate)</text>
+  <text x="58" y="398" font-size="10.5" fill="var(--ink-soft)">model collapse from recursive training on AI output (mitigate by mixing in real data) · obscured data lineage (copyright, contamination)</text>
+</svg>

@@ -1,0 +1,160 @@
+---
+number: 8
+title: "Dataset Engineering"
+shortTitle: "Dataset Engineering"
+description: "Data as the differentiator: curating for quality, coverage, and quantity; acquiring and annotating without losing your mind; synthesizing data with rules, simulation, and AI (and verifying it); the limits of synthetic data — and the unglamorous processing work that makes or breaks models."
+readingTime: 31
+---
+
+import Figure from "../../components/Figure.astro";
+import KeyTakeaways from "../../components/KeyTakeaways.astro";
+import References from "../../components/References.astro";
+import KnowledgeCheck from "../../components/KnowledgeCheck.astro";
+import Ch08Trio from "../../components/diagrams/Ch08Trio.astro";
+import Ch08Synthesis from "../../components/diagrams/Ch08Synthesis.astro";
+import Ch08Llama from "../../components/diagrams/Ch08Llama.astro";
+import Ch08Processing from "../../components/diagrams/Ch08Processing.astro";
+import { flashcards, quiz, assignments } from "../../data/knowledge/ch08";
+
+A model is only as good as its data — the best ML team with infinite compute can't finetune a good model from nothing. **Dataset engineering** aims to build the dataset that trains the best model your budget allows. As fewer companies train models from scratch, data becomes *the* differentiator — visible in how data work professionalized (GPT-3 credited two people for data; GPT-4 credited ~80 plus contracted annotators) and in the rise of dedicated roles: data labelers, dataset creators, data quality engineers. The chapter's honest framing: best practices and tools exist, but data is mostly toil, tears, and sweat.
+
+The lens for all of it: **data-centric AI** (improve performance by improving data — fixed model, better dataset) versus **model-centric AI** (better architectures and training). Benchmarks have followed the shift — competitions now hold the model constant and score your *dataset* by the model it produces. Real progress needs both.
+
+## Data Curation
+
+Curation starts from what you want the model to learn — and data requirements follow the training phase: raw sequences for self-supervision; (instruction, response) for instruction finetuning; (instruction, winning, losing) for preference finetuning; scored pairs for reward models. Two instructive hard cases:
+
+- **Chain-of-thought data**: to get stepwise reasoning out, stepwise responses must go in — and writing full reasoning chains is far slower than writing answers, which is why CoT datasets are scarce (and why including them nearly doubled accuracy on some reasoning tasks).
+- **Tool-use data**: experts demonstrate workflows, but humans skip steps when explaining, and *human-efficient ≠ AI-efficient* — a person clicks through a browser where a model calls an API once. Hence heavy reliance on simulation and synthesis, plus special formats (multi-message turns with source/destination headers, since an agent may message a code interpreter and the user in one turn). Also decide early: single-turn data (responding to instructions) vs multi-turn (solving tasks through back-and-forth — costlier to collect).
+
+Curation cuts both ways: it's also *removing* data to **unlearn** behaviors — the chatbot that appends unsolicited rewrites to every fact-check traces back to training examples with unsolicited suggestions; pull them, and add examples of the desired behavior.
+
+<Figure num="8.1" caption="The golden trio — quality, coverage, quantity — with the bootstrapping ladder for when high-quality data is scarce.">
+  <Ch08Trio />
+</Figure>
+
+### Data quality
+
+A small clean dataset beats a large noisy one — the recurring finding: ~10K carefully crafted instructions outperforming hundreds of thousands of noisy ones; 1,000 curated examples making a 65B model competitive with far stronger models in human preference (with the caveat that tiny-data models lack production robustness); a major lab finding human annotations *more* error-prone than AI-assisted ones for nuanced safety policies. "High-quality" unpacks into six characteristics: **relevant** (19th-century legal text is noise for modern legal QA — and signal for historical legal QA), **aligned with task requirements** (deliberately not "accurate": creative tasks demand creativity, concise tasks brevity, score-with-justification tasks both), **consistent** (two annotators, same example → same label; inconsistency teaches confusion), **correctly formatted** (stray HTML, trailing whitespace, inconsistent casing all interfere), **sufficiently unique** (duplication biases and contaminates), and **compliant** (no PII if PII is banned). A good annotation guideline underwrites the middle four — and it's the same guideline as your evaluation guideline (Chapter 4), another reason to invest there.
+
+### Data coverage
+
+Your data must span the problems and phrasings your users bring: long *and* short instructions if users write both; typos if users make typos; every programming language your users care about. Diversity dimensions are application-specific (a French→English tool needs topic/style diversity, not language diversity; a global product chatbot needs the reverse). The evidence for diversity is strong: a flagship model's gains attributed "primarily" to data quality and diversity; instruction-tuning performance climbing steeply as task count grew from 9 to 282 (then plateauing slowly into the thousands); and the controlled experiment — same size, three datasets — where *quality + diversity together* beat either alone. The instructive detail from one open model's data mix: math/reasoning/code ≈ half of pre-training and SFT (quality code and math boost reasoning beyond their internet share — they even *annealed* on extra math/code late in training), but only ~13% of preference data, which instead mirrors real user-preference distributions. Finding your mix: copy your real usage distribution, or run scaling-law experiments — train small models per candidate mix and extrapolate.
+
+### Data quantity
+
+How much is "enough" spans single-example experiments to millions of pairs (still tiny versus the trillions of pre-training tokens). Three modifiers: **finetuning method** (full finetuning wants tens of thousands+; PEFT performs on hundreds), **task complexity**, and **base model strength** — with ~100 examples, stronger bases win decisively; with ~550K, every model in the comparison converged. Hence the heuristics: small data → PEFT on the strongest base; huge data → full finetuning on a smaller model (and at the millions scale, *evaluate training from scratch* — **ossification** means pre-trained weights can resist adapting, hitting small models hardest). Before buying 10,000 annotations: finetune on ~50 good examples — visible improvement predicts more from more; none usually means more data won't save you (but rule out bad hyperparameters and prompts first). Then plot performance on 25%/50%/100% subsets and read the slope — steep means buy more, flat means stop. When quality data is scarce, climb the **bootstrapping ladder**: self-supervised on raw domain documents → supervised pairs; less-relevant data (tweet sentiment) → relevant (product sentiment); synthetic → real (hardest to coordinate). And remember the budget arithmetic: $10K at $2/annotation caps you at 5,000 examples — money spent on data isn't available for compute.
+
+### Data acquisition and annotation
+
+The acquisition toolkit: public datasets, purchased proprietary data, annotation, synthesis — mixed and matched (a realistic pipeline: find 10K examples → filter to 6K good ones → re-annotate 3K salvageable instructions → synthesize 2K more from templates for an underrepresented topic → annotate those → discover problems, revise the guideline, repeat). The best source is **your own application** — a *data flywheel* of user-generated content, usage data, and feedback matches your true distribution in a way nothing else can. For public data: dataset hubs, search engines for datasets, government portals, academic repositories, and evaluation harnesses (whose benchmark sets are big enough for PEFT) — always checking licenses and provenance, since a permissively licensed dataset can still contain wrongly sourced pieces. The hardest part isn't labeling; it's **writing the annotation guideline** (what makes a response good? can it be correct yet unhelpful?) — teams report it among their biggest pipeline challenges, and abandoning it halfway ("the model will figure it out") is a gamble.
+
+## Data Augmentation and Synthesis
+
+**Augmentation** derives new data from real data (flip the cat photo); **synthesis** generates data that mimics real data's properties (simulated mouse movements). The terms blur; the goal is the same — programmatic data creation, a long-standing industry dream now turbocharged by AI that writes realistic doctor's notes, contracts, and product descriptions.
+
+<Figure num="8.2" caption="Why synthesize, how (traditional and AI-powered), the verification that makes it usable, and the four limits to respect.">
+  <Ch08Synthesis />
+</Figure>
+
+**Why**: to increase **quantity** (rare weather, deep-sea, accident data); **coverage** (targeted generation: extreme lengths, toxic examples to train detectors, adversarial cases, rare classes — one lab generated datasets testing 154 distinct AI behaviors and found model-written datasets approaching, sometimes exceeding, human-written quality); **quality** (sometimes AI beats humans: tool-use trajectories, math problems harder than experts conceive, preference ratings more consistent than mood-influenced humans); **privacy** (synthetic patient records where real ones are untouchable); and **distillation** (train a cheap student on a teacher's outputs).
+
+**Traditional techniques** still earn their keep. *Rule-based*: templates populate transactions, invoices, resumes, math equations (an Olympiad-level geometry model trained on 100M template-generated examples); transformations create variants — image flips/crops, synonym swaps, and bias-countering swaps (gendered words flipped so "nurse" stops implying "she"); *perturbation* adds noise that both exposes fragility (one changed pixel can flip a classification — an attack surface) and, trained on, hardens models. *Simulation*: run dangerous or expensive experiments virtually — self-driving edge cases (the horse on the highway), robot joint trajectories kept only when the coffee pours, rare financial events, climate scenarios — with the Sim2Real gap as the standing caveat.
+
+**AI-powered synthesis** extends all of it: simulate *APIs* (train tool-use without costly real calls); simulate *humans* (**self-play** — a game bot playing ~180 years' worth of matches daily against itself; customer and support-agent roles played by two model instances); **paraphrase and translate** (15K math problems rewritten into ~400K; high-resource → low-resource language translation, quality-checked by **back-translation** — translate back and compare). For **instruction data** specifically: generate instructions, responses, or both — seed a topic tree (30 topics × 30–50 subtopics, then instructions and responses per leaf) or mirror a handful of curated seed examples into tens of thousands of pairs (the recipe behind early open instruction models). The elegant trick is **reverse instruction**: keep *human* long-form content as the response and ask AI only to write the prompt that would elicit it — sidestepping hallucination where it matters most (long generations), and even enabling iterative bootstrapping: weak model → generate instructions over quality content → finetune → repeat. A related trick synthesizes *long-context* training data: chunk long documents, generate Q&A per chunk, then attach the full document as context — teaching the model to use windows bigger than it was trained for.
+
+<Figure num="8.3" caption="The verified synthesis pipeline behind millions of coding examples — generation is easy; the verification gate is the product.">
+  <Ch08Llama />
+</Figure>
+
+**Verification** is the heart of it — people synthesize what they can verify (evaluation-driven development's cousin), which is why coding dominates synthetic data: parsers and linters catch syntax errors, AI-generated unit tests catch runtime errors, failures route back to the model with feedback for revision (~20% of solutions self-corrected), and only examples passing everything enter the dataset — 2.7M+ verified coding examples for one flagship model's SFT, topped with cross-language translation (drop what fails tests) and back-translation-checked documentation. Where functional checks don't exist: AI judges and specialized scorers, factual-consistency filters, creative discriminators (if a classifier can easily tell synthetic from real, the synthetic data isn't good enough), topic and anomaly filters, and plain heuristics (drop repetitive, too-short/long, same-instruction-different-response examples). For AI-generated *preference* data, control judge biases — e.g., ask twice with order swapped, keep only consistent verdicts.
+
+**Limitations** — four reasons synthetic won't fully replace human data: **quality control** (garbage in, garbage out — unverifiable synthetic data doesn't get used); **superficial imitation** (students mimic teacher *style* while failing factuality and generalization — and training on solutions beyond the student's ability literally teaches answer-shaped hallucination; human annotations beyond the model's knowledge do the same); **model collapse** (recursive training on AI output over-represents probable events and forgets rare ones, degrading irreversibly — apparently avoidable by mixing real data, with no agreed ratio; counterexamples exist of massive synthetic training working for one iteration, and feedback loops can amplify dataset biases); and **obscured lineage** (synthetic data inherits its generator's copyright exposure and benchmark contamination — invisibly).
+
+### Model distillation
+
+**Distillation** trains a small *student* to mimic a large *teacher* — classically for deployment economics (a distilled encoder model: 40% smaller, 97% of the comprehension, 60% faster; a 7B model finetuned on a 175B model's outputs behaving comparably at 4% the size; one team cut inference costs 80% with a LoRA-finetuned student on teacher-generated data). Mind licenses — many prohibit training competitors on outputs. And note the boundary: not all synthetic training *is* distillation — distillation implies the teacher is the ceiling. Synthetic data can train students *stronger* than their teachers (reverse-instruction bootstrapping; a 340B model instruction-tuned on 98% synthetic data from a 56B teacher, outperforming it) — with the crucial proviso that *indiscriminate* self-generated data doesn't help and can hurt; verified self-generated data is what enables continual self-improvement.
+
+## Data Processing
+
+<Figure num="8.4" caption="The processing pipeline — and the meta-tips: order steps by cost, trial-run scripts, never modify data in place.">
+  <Ch08Processing />
+</Figure>
+
+Meta-tips first: order the steps by what saves compute (dedup before cleaning if cleaning is the expensive one); trial-run every script before unleashing it; **never modify data in place** — keep the original (other teams need different processing; buggy scripts corrupt).
+
+- **Inspect.** Provenance first (where from? processed how? used for what?), then distributions — tokens, input/output lengths, topics, languages — sliced by source, time, and annotator (creative statistics help: verb-noun pair distributions reveal generation diversity). Hunt outliers and annotator quirks (some skew short or generous); compute inter-annotator disagreement and resolve conflicts; annotate samples yourself and compare; fact-check. Tools help but don't replace eyeballs: fifteen minutes of staring at data reliably saves hours — in the words of an OpenAI cofounder, manual data inspection has probably the highest value-to-prestige ratio in ML.
+- **Deduplicate.** Duplicates skew distributions (three identical red-pencil rows teach "red = expensive"), contaminate train/test splits, and quietly devastate quality — repeating 0.1% of data 100× degraded an 800M model to 400M-level performance. Duplication lives at many levels (whole-document, intra-document, cross-document) and needs a definition (exact? 80% overlap? same items reordered?). Methods reuse Chapter 3's similarity toolkit: pairwise comparison (small data), hashing (MinHash, Bloom filters), dimensionality reduction.
+- **Clean and filter.** Strip formatting junk (removing stray HTML/Markdown bought one team +20% accuracy and −60% input tokens); remove non-compliant content (PII, sensitive fields, toxicity); cut low-quality examples using verification techniques and inspection-derived heuristics (a finding worth stealing: annotations from late in an annotation session are measurably worse — fatigue). Over budget? Active learning and importance sampling pick the examples worth keeping; good data-pruning metrics are a research prize of their own.
+- **Format.** Match the model's tokenizer and chat template exactly (Chapter 5's silent-failure warning applies to training too). Finetuning prompts differ from prompting-era prompts: task descriptions and few-shot examples usually go — the training examples carry the task, so a three-shot classification prompt becomes N tiny `input --> output` pairs, and serving prompts shrink to almost nothing. But *serve what you trained*: after training on `burger -->`, the variants missing the arrow, adding a prefix, or appending a space can each break behavior.
+
+<KeyTakeaways
+  items={[
+    "Data is the differentiator now: <strong>data-centric AI</strong> holds the model fixed and competes on datasets. Data work became dedicated roles (2 people on GPT-3's data; ~80 on GPT-4's).",
+    "Curation = showing the behaviors you want learned — including <strong>removing</strong> data to unlearn bad behaviors. CoT and tool-use data are the hard cases (humans explain badly, and human-efficient ≠ AI-efficient).",
+    "The golden trio: <strong>quality</strong> (relevant, aligned, consistent, formatted, unique, compliant), <strong>coverage</strong> (match real usage diversity — typos included), <strong>quantity</strong> (method × complexity × base strength).",
+    "Less-but-better is real: ~1K curated examples can rival giants — but quality AND diversity together beat either alone.",
+    "Size your data empirically: ~50 examples as the canary, then the 25/50/100% subset curve. Small data → PEFT on a strong base; massive data → full finetuning on a smaller one (mind <strong>ossification</strong>).",
+    "The best data source is your own application — the <strong>data flywheel</strong>. The hardest artifact isn't labels; it's the annotation guideline (which doubles as your evaluation guideline).",
+    "Synthesize for quantity, coverage, quality, privacy, and distillation — via templates, transformations, perturbation, simulation, self-play, paraphrase/translation, topic-tree instruction generation, and <strong>reverse instruction</strong> (AI writes prompts for human content).",
+    "People synthesize what they can <strong>verify</strong>: coding dominates because execution + tests + back-translation give ground truth. Gate everything; route failures back for revision.",
+    "Respect synthetic data's limits: superficial imitation (style without substance — teaching hallucination), <strong>model collapse</strong> under recursion (mix in real data), and invisible lineage (copyright, contamination).",
+    "Distillation makes cheap students of expensive teachers (check licenses!) — but verified synthetic data can also train students <strong>stronger</strong> than the teacher.",
+    "Processing: inspect (15 minutes of staring saves hours), deduplicate (0.1% repeated 100× halves your effective model), clean (HTML junk out: +20% accuracy), format (exact template; serve what you trained).",
+    "Never modify data in place, trial-run every script, and order processing steps by compute cost.",
+  ]}
+/>
+
+<References
+  items={[
+    {
+      title: "LIMA: Less Is More for Alignment",
+      url: "https://arxiv.org/abs/2305.11206",
+      type: "Paper",
+      source: "Zhou et al., 2023 · Meta",
+      why: "The 1,000-example result behind this chapter's quality-over-quantity argument — and the source of the quality × diversity controlled experiment.",
+    },
+    {
+      title: "Self-Instruct: Aligning Language Models with Self-Generated Instructions",
+      url: "https://arxiv.org/abs/2212.10560",
+      type: "Paper",
+      source: "Wang et al., 2022",
+      why: "The seed-examples-to-52K-pairs recipe (via Alpaca) that launched open instruction tuning — including the filtering heuristics this chapter lists.",
+    },
+    {
+      title: "The Curse of Recursion: Training on Generated Data Makes Models Forget",
+      url: "https://arxiv.org/abs/2305.17493",
+      type: "Paper",
+      source: "Shumailov et al., 2023",
+      why: "The model-collapse paper — read it before betting a data strategy on recursive synthetic generation.",
+    },
+    {
+      title: "Cosmopedia: how to create large-scale synthetic data for pre-training",
+      url: "https://huggingface.co/blog/cosmopedia",
+      type: "Blog",
+      source: "Hugging Face",
+      why: "A practical walkthrough of building a 25B-token synthetic dataset — prompt engineering for diversity, dedup, and contamination checks at scale.",
+    },
+    {
+      title: "Thinking about High-Quality Human Data",
+      url: "https://lilianweng.github.io/posts/2024-02-05-human-data-quality/",
+      type: "Blog",
+      source: "Lilian Weng · OpenAI",
+      why: "The deep dive on annotation quality this chapter gestures at: rater disagreement, guideline design, and measuring annotator reliability.",
+    },
+    {
+      title: "distilabel",
+      url: "https://github.com/argilla-io/distilabel",
+      type: "Tool",
+      source: "Argilla",
+      why: "An open framework for exactly this chapter's pipelines — AI-generated instructions, responses, and preference data with built-in verification steps.",
+    },
+  ]}
+/>
+
+<KnowledgeCheck
+  chapter="ch08"
+  flashcards={flashcards}
+  quiz={quiz}
+  assignments={assignments}
+/>

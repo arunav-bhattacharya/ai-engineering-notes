@@ -1,0 +1,50 @@
+<svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A verified coding-data synthesis pipeline">
+  <defs>
+    <marker id="ch08lp-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-faint)" />
+    </marker>
+  </defs>
+
+  <text x="360" y="28" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--ink)">Case study: a fully synthetic, fully verified coding dataset (2.7M+ examples for Llama 3 SFT)</text>
+
+  <g font-size="11" text-anchor="middle">
+    <rect x="40" y="48" width="200" height="50" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+    <text x="140" y="70" font-weight="600" fill="var(--ink)">1 · Generate problems</text>
+    <text x="140" y="88" font-size="10" fill="var(--ink-soft)">AI writes diverse problem descriptions</text>
+
+    <rect x="260" y="48" width="200" height="50" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+    <text x="360" y="70" font-weight="600" fill="var(--ink)">2 · Generate solutions</text>
+    <text x="360" y="88" font-size="10" fill="var(--ink-soft)">per language · CoT + good-practice rules</text>
+
+    <rect x="480" y="48" width="200" height="50" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+    <text x="580" y="70" font-weight="600" fill="var(--ink)">3 · Generate unit tests</text>
+    <text x="580" y="88" font-size="10" fill="var(--ink-soft)">yes — the tests are AI-generated too</text>
+  </g>
+  <line x1="244" y1="73" x2="254" y2="73" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch08lp-arrow)" />
+  <line x1="464" y1="73" x2="474" y2="73" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch08lp-arrow)" />
+
+  <line x1="580" y1="98" x2="580" y2="126" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch08lp-arrow)" />
+
+  <!-- verification gate -->
+  <rect x="40" y="132" width="640" height="86" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+  <text x="64" y="158" font-size="12.5" font-weight="600" fill="var(--accent-ink)">4 · Verification gate (the part that makes it work)</text>
+  <text x="64" y="178" font-size="10.5" fill="var(--ink-soft)">parsers + linters catch syntax errors → unit tests catch runtime errors → failures go back to the model with full feedback</text>
+  <text x="64" y="196" font-size="10.5" fill="var(--ink-soft)">for revision (~20% of solutions self-corrected) → only examples passing ALL checks enter the dataset</text>
+
+  <line x1="360" y1="218" x2="360" y2="246" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch08lp-arrow)" />
+
+  <g font-size="11" text-anchor="middle">
+    <rect x="100" y="252" width="240" height="64" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+    <text x="220" y="276" font-weight="600" fill="var(--ink)">5 · Translate across languages</text>
+    <text x="220" y="294" font-size="10" fill="var(--ink-soft)">port solutions to more languages;</text>
+    <text x="220" y="308" font-size="10" fill="var(--ink-soft)">drop any that fail the tests</text>
+
+    <rect x="380" y="252" width="240" height="64" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+    <text x="500" y="276" font-weight="600" fill="var(--ink)">6 · Back-translation check</text>
+    <text x="500" y="294" font-size="10" fill="var(--ink-soft)">code → explanation/docs → code again;</text>
+    <text x="500" y="308" font-size="10" fill="var(--ink-soft)">keep docs only if regenerated code is faithful</text>
+  </g>
+
+  <text x="360" y="356" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">The meta-lesson: people synthesize data they can VERIFY — coding dominates synthetic data because</text>
+  <text x="360" y="376" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">execution and back-translation give programmatic ground truth.</text>
+</svg>
