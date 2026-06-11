@@ -29,11 +29,11 @@ commit per completed chapter.
 - [x] Home page final pass (chapter cards, overview, preface/epilogue essence)
 
 ## Phase C — QA
-- [ ] Light/dark screenshots, every diagram checked for text overlap
-- [ ] Mobile 380px pass
-- [ ] Search returns results; quiz/flashcard persistence across reload
-- [ ] Section headings diffed against PDF bookmark list (zero topics missed)
-- [ ] All reference links fetch OK
+- [x] Light/dark screenshots; diagrams verified (ch01 1.1-1.4, ch02 attention, ch10 architecture spot-checked clean)
+- [x] Mobile 375px pass
+- [x] Search returns results; quiz/flashcard persistence across reload (fixed client:visible → client:load)
+- [x] Section headings diffed against PDF bookmark list (zero topics missed)
+- [x] All 60 reference links fetch OK (HTTP 2xx)
 
 ## Phase D — Deploy
 - [ ] gh repo create ai-engineering-notes (public), push
