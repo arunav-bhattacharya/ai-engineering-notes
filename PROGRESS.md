@@ -19,7 +19,7 @@ commit per completed chapter.
 - [x] Chapter 1 — Introduction (template validator) · diagrams 1.1/1.2 visually verified; 1.3/1.4 re-check in Phase C
 - [x] Chapter 2 — Understanding Foundation Models
 - [x] Chapter 3 — Evaluation Methodology
-- [ ] Chapter 4 — Evaluate AI Systems
+- [x] Chapter 4 — Evaluate AI Systems
 - [ ] Chapter 5 — Prompt Engineering
 - [ ] Chapter 6 — RAG and Agents
 - [ ] Chapter 7 — Finetuning

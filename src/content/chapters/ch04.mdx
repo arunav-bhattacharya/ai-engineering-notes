@@ -1,0 +1,246 @@
+---
+number: 4
+title: "Evaluate AI Systems"
+shortTitle: "Evaluate AI Systems"
+description: "Turning evaluation methods into decisions: the four criteria buckets every application needs, how to choose between model APIs and self-hosting, why public benchmarks can't be trusted (contamination included), and the three-step recipe for an evaluation pipeline you can actually rely on."
+readingTime: 33
+---
+
+import Figure from "../../components/Figure.astro";
+import KeyTakeaways from "../../components/KeyTakeaways.astro";
+import References from "../../components/References.astro";
+import KnowledgeCheck from "../../components/KnowledgeCheck.astro";
+import Ch04Criteria from "../../components/diagrams/Ch04Criteria.astro";
+import Ch04Selection from "../../components/diagrams/Ch04Selection.astro";
+import Ch04Factual from "../../components/diagrams/Ch04Factual.astro";
+import Ch04Pipeline from "../../components/diagrams/Ch04Pipeline.astro";
+import { flashcards, quiz, assignments } from "../../data/knowledge/ch04";
+
+Chapter 3 gave us evaluation *methods*; this chapter puts them to work on three practical jobs: defining **evaluation criteria** for your application, **selecting a model** (including the build-vs-buy question and the minefield of public benchmarks), and assembling an **evaluation pipeline** that can guide development over time.
+
+## Evaluation Criteria
+
+A pointed question to start: which is worse — an application that never shipped, or one that shipped and *nobody knows if it works*? Conference audiences consistently pick the latter: it costs to maintain, and removing it may cost even more. Such apps are common — a used-car dealership ran a price-prediction model for a year with zero idea whether its predictions were accurate; plenty of ChatGPT-era support bots still can't say whether they help or hurt.
+
+The antidote is **evaluation-driven development** — define how the application will be evaluated *before* building it, the way test-driven development writes tests before code. It's no accident that the most common enterprise AI deployments are the measurable ones: recommenders (engagement lift), fraud detection (money saved), coding (functional correctness), and close-ended tasks like intent classification. The honest caveat: only chasing measurable applications is searching for your keys under the lamppost — and that's exactly why building reliable evaluation pipelines *unlocks* applications; evaluation is the biggest bottleneck to AI adoption.
+
+Criteria sort into four buckets. For a legal-contract summarizer: does the model understand legal text (**domain-specific capability**)? Is the summary coherent and faithful (**generation capability**)? Is it in the requested format and length (**instruction-following**)? What does each summary cost and how long does it take (**cost and latency**)?
+
+<Figure num="4.1" caption="Four questions to ask of every output — the criteria buckets that structure an application's evaluation.">
+  <Ch04Criteria />
+</Figure>
+
+### Domain-specific capability
+
+A coding agent needs a model that can code; a Latin translator needs a model that has *seen Latin* — these capabilities are ceilinged by training data and model configuration, and no prompt rescues a model that lacks them. They're commonly checked with **exact evaluation**: functional correctness for code (plus dimensions beyond correctness — BIRD-SQL also scores query *efficiency* against the ground-truth query's runtime, because a correct-but-slow query may be unusable; readability needs subjective judging), and **close-ended formats** for everything else.
+
+The workhorse format is the multiple-choice question (~75% of tasks in EleutherAI's evaluation harness as of 2024; MMLU, AGIEval, ARC-C). MCQs are easy to create, verify, and baseline (four options → 25% random accuracy); classification is the special case where every question shares the same choices (accuracy, F1, precision, recall). Two cautions, though: model answers can flip with trivial formatting changes (an extra space, an added "Choices:" — prompt sensitivity, see Chapter 5), and more fundamentally, MCQs test *picking* good answers, not *generating* them — fine for knowledge and reasoning, wrong for summarization, translation, or writing.
+
+### Generation capability
+
+Evaluating generated text predates the boom — the NLG (natural language generation) field spent the 2010s scoring translation and summarization on **fluency** (grammatical, natural-sounding) and **coherence** (logically structured), plus task metrics like **faithfulness** for translation and **relevance** for summarization. As generation quality soared, fluency and coherence faded toward solved (they still matter for weak models, creative writing, and low-resource languages; both can be judged by AI or estimated via perplexity). The modern action is elsewhere: **factual consistency** and **safety**.
+
+#### Factual consistency
+
+<Figure num="4.2" caption="Two verification settings and four technique tiers for catching factual inconsistency.">
+  <Ch04Factual />
+</Figure>
+
+Verification happens in two settings. **Local** consistency checks the output against a *provided context* — the summary against the document, the support bot against company policy, a RAG answer against retrieved passages — and is far more tractable. **Global** consistency checks against open knowledge, which adds the genuinely hard step: deciding what the facts *are*. ("Messi is the best player in the world" — factual? Depends entirely on your sources.) The internet brims with misinformation, absence-of-evidence traps lurk, and models judge evidence differently than people do — research found models weigh a source's *relevance to the query* heavily while largely ignoring credibility signals humans use, like scientific references and neutral tone.
+
+A practical tip from the author's own projects: profile *where* your model hallucinates and weight your benchmark there. Two reliable hot spots: niche topics (the Vietnamese Mathematical Olympiad draws more hallucination than the International one), and questions about things that don't exist ("What did X say about Y?" when X never said anything about Y).
+
+The technique ladder, given a context to check against:
+
+- **AI judge with a good prompt** — the straightforward option, and GPT-4-class judges beat older specialized methods; a finetuned judge predicted human truthfulness ratings with 90–96% accuracy on TruthfulQA.
+- **Self-verification** (SelfCheckGPT) — sample N fresh responses; if they disagree with the original, it was likely hallucinated. Effective, expensive.
+- **Search-augmented verification** (SAFE, DeepMind) — decompose the response into atomic statements, rewrite each to be self-contained, fact-check each via search-engine queries, judge each against results.
+- **Textual entailment** (a classic NLP task, a.k.a. natural language inference) — classify (premise, hypothesis) as *entailment / contradiction / neutral*, mapping to consistent / inconsistent / undetermined. Small specialized scorers (e.g., a 184M-parameter DeBERTa variant trained on ~764K pairs) make this fast and cheap.
+
+The benchmark to know: **TruthfulQA** — 817 questions across 38 categories engineered around popular human misconceptions (does cracking knuckles cause arthritis?), with a finetuned AI judge for scoring. Human experts hit 94%; models historically score far below — they learn the internet's errors along with its knowledge. Factual consistency is *the* criterion for RAG systems (Chapter 6).
+
+#### Safety
+
+Beyond factual harm: inappropriate language, harmful recommendations and tutorials, hate speech, violence, stereotypes (nurse = female name, CEO = male name), and political/religious bias (studies place GPT-4 left-libertarian and Llama more authoritarian on the standard compass — training choices leak ideology). General AI judges detect much of this when prompted well, and providers expose moderation endpoints. But note the economics: toxicity detection predates generative AI, so **small specialized classifiers** (hate-speech detectors, Perspective API, plus language-specific models) are faster and cheaper than general judges. Benchmarks: RealToxicityPrompts (100K naturally occurring prompts engineered to elicit toxic completions) and BOLD.
+
+### Instruction-following capability
+
+A model can have the domain skill and still fail you: asked to label tweets POSITIVE/NEGATIVE/NEUTRAL, it understands sentiment fine — and outputs HAPPY and ANGRY. That's an instruction-following failure, and it breaks every downstream consumer expecting your schema. This capability is what post-training installed (InstructGPT is literally named for it), it's essential for structured outputs, and it extends beyond format — "use only words a child knows" is an instruction too (a real startup constraint: generating kids' stories from a restricted vocabulary).
+
+It's also slippery to measure, because failures conflate: if a model can't produce a Vietnamese lục bát verse, is it missing the poetry knowledge or misunderstanding the request? (Corollary: when a model underperforms, the model *or the instruction* could be at fault.) Two benchmarks show the measurement spectrum:
+
+- **IFEval** (Google) sticks to 25 *automatically verifiable* instruction types — include keyword X, exactly N bullet points, respond in language Y, wrap output in JSON — scored by simple programs checking compliance.
+- **INFOBench** broadens to content constraints ("discuss only climate change"), linguistic guidelines ("Victorian English"), and style rules ("respectful tone"), verified by decomposing each instruction into yes/no criteria questions answered by an evaluator. (Their finding: GPT-4 as evaluator is reasonably reliable and cheaper than crowdworkers — not as good as experts, better than Mechanical Turk.)
+
+The portable lesson: benchmarks define instruction-following differently and can't cover *your* instructions — **build a benchmark of the instructions you actually use**. Need YAML? Test YAML. Hate "As a language model…"? Test for it.
+
+**Roleplaying** deserves special mention — the eighth most common use in LMSYS's million-conversation analysis, and core to gaming NPCs, AI companions, and writing assistants. Evaluate both **style** (sounds like the character) and **knowledge** (uses the character's knowledge — including *negative* knowledge: an NPC mustn't leak spoilers its character couldn't know). Benchmarks exist (RoleLLM with similarity scores + AI judges, CharacterEval with human annotation + a trained reward model), and role-specific heuristics help (a taciturn character should produce short outputs).
+
+### Cost and latency
+
+Quality means nothing if it arrives too slow or too expensive — many companies deliberately ship lower-quality models for better cost/latency. Balancing objectives is **Pareto optimization**; the working method is to declare your non-negotiables, hard-filter on those, then optimize the rest. Latency has many faces (time to first token, time per token, time per query — know which matters to you), depends on prompt and sampling (more output tokens = more latency; "be concise" is a latency optimization), and deserves skepticism in requirements-gathering: ask users if they want lower latency and nobody says no — distinguish must-have from nice-to-have.
+
+Cost splits by hosting choice: APIs charge per token (so cost scales with usage, and token-trimming becomes a discipline), while self-hosting costs compute + engineering (and *per-token cost falls with scale* once the cluster is paid for — re-run the build-vs-buy math as you grow; it's no coincidence popular model sizes max out standard 16/24/48/80 GB GPU tiers). A criteria table makes all of this concrete — metric, benchmark, hard requirement, ideal — covering cost per token, tokens-per-minute scale, P90 TTFT, quality scores, and your internal hallucination metric.
+
+## Model Selection
+
+You don't care which model is best; you care which is best *for your application, under your constraints*. Selection recurs throughout development (prompt engineering: start strongest, work down; finetuning: start small, scale up), and each round boils down to two moves — find the best achievable quality, then map models on the cost-performance plane and pick the best value.
+
+### The selection workflow
+
+<Figure num="4.3" caption="Four iterative steps: hard filters, public signals, private evaluation, production monitoring.">
+  <Ch04Selection />
+</Figure>
+
+The key distinction: **hard attributes** (you can't change them — provider decisions like license, training data, size; or your own policies like privacy and control) versus **soft attributes** (improvable — accuracy, toxicity, factual consistency). Whether something is hard or soft depends on your position: latency is soft if you host the model and can optimize it, hard if you're calling someone's API. Estimating soft-attribute headroom is honest guesswork — the author has seen 20% accuracy jump to 70% by splitting a task in two, and has abandoned models after weeks of tweaking.
+
+The workflow: **(1)** filter out models failing your hard attributes; **(2)** shortlist using public benchmarks and leaderboards; **(3)** run your own evaluation pipeline on the shortlist; **(4)** monitor in production. Iterate — production findings can reopen step 1.
+
+### Build versus buy
+
+First, vocabulary that licensing fights are made of. "Open source model" originally meant downloadable weights; purists now reserve it for models with **open data** too. The compromise terms: **open weight** (weights only — the vast majority, partly because publishing data invites scrutiny and lawsuits) versus **open model** (weights + data, enabling auditing and full retraining). Licenses are a zoo (Llama's community licenses, RAIL variants, Apache 2.0 for Gemma and Mistral-7B), and three questions cut through any of them: Is commercial use allowed (and with what caps — Llama requires special licensing past 700M monthly users)? Can outputs train other models (distillation — long disallowed by Llama licenses; and beware *lineage*: a model trained on ChatGPT outputs can be tainted by ChatGPT's terms even if its own license permits everything)? What restrictions remain?
+
+The operational question — call a **model API** or self-host — turns on seven axes:
+
+| Axis | Model API | Self-host |
+|---|---|---|
+| Data privacy | Your data leaves the building (Samsung's ChatGPT leak → company ban); provider policies can change quietly (Zoom's 2023 ToS backlash) | Data stays home |
+| Data lineage | Contract may shield you; little training-data transparency anywhere | Open models invite audits in theory; datasets too big to truly inspect |
+| Performance | The strongest models stay behind APIs (incentives: why open-source your moat?) | Gap is narrowing; "good enough" is often genuinely enough |
+| Functionality | Scaling, function calling, structured outputs out of the box; logprobs often hidden (replication fear); finetuning only if offered | Full access — logprobs, intermediate states, any finetuning method — if you build it |
+| Cost | Per-token fees, roughly flat with scale | Engineering talent + compute; per-token cost drops with scale |
+| Control & transparency | Rate limits, over-censoring guardrails (Convai's 3D characters kept insisting "as an AI model, I don't have physical abilities" — they finetuned open models instead), silent model updates that break prompts, risk of losing access entirely | Freeze versions forever; you own the guardrails — and the maintenance |
+| On-device | Not an option | The only option |
+
+A useful nuance: **commercial-model APIs ≠ the only APIs**. Cloud providers and startups serve open models via API too — for them *the API is the product*, which can mean better pricing and features; privately deployed commercial APIs behave like self-hosting for privacy purposes. (And some privacy-strict companies trust big clouds with the same data they'd never send a startup.) Whatever you choose, prefer models following a de facto standard API (most mimic OpenAI's) so swapping stays cheap, and value community size — popular models have pre-debugged quirks.
+
+### Navigating public benchmarks
+
+Thousands of benchmarks exist (BIG-bench alone: 214; evaluation harnesses like EleutherAI's lm-evaluation-harness and OpenAI's evals run hundreds). Two questions decide everything: which benchmarks, and how to aggregate them.
+
+**How public leaderboards do it** — imperfectly, instructively. Compute constraints force small subsets (HELM Lite dropped an information-retrieval benchmark for cost; Hugging Face skipped HumanEval for the same reason). Selection logic is opaque even from thoughtful teams: Hugging Face's 2023 Open LLM Leaderboard averaged six benchmarks (ARC-C, MMLU, HellaSwag, TruthfulQA, WinoGrande, GSM-8K); HELM used ten, sharing only two with Hugging Face — why medical and legal but not science? Two math suites but no coding? If maintainers can't articulate selection criteria, it's because the problem is genuinely hard. Saturation forces constant churn (by mid-2024 Hugging Face had swapped in MMLU-Pro, MATH lvl 5, GPQA, MuSR, BBH, IFEval — harder and more practical).
+
+Two technical points to carry into your own selection: **correlation** (if two benchmarks correlate perfectly, keep one; strongly correlated benchmarks exaggerate biases — WinoGrande/MMLU/ARC-C cluster around 0.9, while TruthfulQA stands apart: reasoning gains don't buy truthfulness) and **aggregation semantics** (Hugging Face averages — treating an 80% on TruthfulQA as equal to an 80% on GSM-8K; HELM prefers *mean win rate* — the fraction of head-to-head scenario wins).
+
+**Building your private leaderboard**: gather benchmarks matching *your* criteria (coding agent → coding benchmarks; check recency and reliability — anyone can publish a benchmark), run missing evaluations yourself via a harness (budget warning: Stanford's full HELM run on 30 models cost on the order of $80–100K), and weight scores by what matters to you — units won't even match (accuracy here, F1 there, BLEU elsewhere). And remember the goal: public benchmarks **filter out bad models; they don't pick your winner**. Your own pipeline does.
+
+<div class="note">
+<span class="aside-label">"Is the model getting worse?"</span>
+
+Every provider update triggers degradation complaints — and a Stanford/Berkeley study did find significant GPT-3.5/GPT-4 behavior shifts over three months of 2023. The same update genuinely helps some applications and hurts others (one company's intent classification dropped 10% on a model migration that *improved* another company's support bot). Moral: the best model overall isn't necessarily the best model for you — and silent model updates are a real operational risk.
+
+</div>
+
+#### Data contamination
+
+The deeper reason to distrust public numbers: **contamination** — models trained on the data they're evaluated on (a.k.a. data leakage, training on the test set, or just cheating). A satirical paper made the point unforgettable: a one-million-parameter model trained *exclusively on benchmark data* posted near-perfect scores, beating models thousands of times larger. High score, zero capability.
+
+How it happens: mostly **unintentionally** — internet-scraped training data swallows public benchmarks (one practitioner's quip: a benchmark stops being useful the day it's published), or training and eval data share a source (the same math textbook feeding both). Sometimes **intentionally, defensibly**: benchmark data is high-quality training data, so a team might select a model via clean benchmarks, then train on the benchmarks before release — better model, untrustworthy public scores.
+
+Detection uses two heuristics from Chapter 3's toolkit: **n-gram overlap** (a long token sequence from the eval set appearing in training data marks the sample dirty — accurate, but slow and impossible without training-data access) and **perplexity** (suspiciously low perplexity on eval data = probably memorized — cheaper, rougher). Handling it: model developers should deduplicate the benchmarks they care about from training data, and report contamination rates with clean-subset performance alongside overall scores — GPT-3's own analysis found 13 benchmarks with ≥40% of their data in its training set; sadly, many skip the effort entirely. Leaderboard hosts plot per-benchmark score distributions to flag outliers, and benchmarks increasingly keep private held-out test sets.
+
+## Design Your Evaluation Pipeline
+
+Everything converges here: a three-step recipe for evaluating open-ended applications (close-ended pipelines fall out as the easy case).
+
+<Figure num="4.4" caption="The pipeline recipe: evaluate everything, define 'good' precisely, then choose methods and data — and evaluate the evaluator.">
+  <Ch04Pipeline />
+</Figure>
+
+### Step 1: Evaluate all components, at all levels
+
+Real applications are multi-component and multi-turn, and failures hide in the joints. A résumé-parser that extracts text from PDF then pulls the current employer must be evaluated *per component* — text-extraction quality (similarity to ground truth) separately from employer-extraction accuracy (given clean text) — or you'll never localize failures. Likewise evaluate **per turn** (each response's quality) *and* **per task** (did the user accomplish their goal, and in how many turns — two versus twenty matters). Task-level is what users actually care about, but task boundaries blur in real conversations (is the new question a follow-up or a new task?). A charming example of task-based design: BIG-bench's twenty-questions task — one model instance picks a concept, another asks yes/no questions to guess it; score = success and number of questions needed.
+
+### Step 2: Create an evaluation guideline
+
+The most important step, and the usual hurdle (LinkedIn called it their first major obstacle in a year of shipping generative AI). Two disciplines:
+
+- **Define what good means — and what out-of-scope means.** Correct ≠ good: "You are a terrible fit" may be a *correct* job-fit assessment and a terrible response — good means explaining the gap and how to close it. Decide which inputs your app refuses (should the support bot discuss elections?) and how. Teams typically land on a handful of criteria (LangChain's data: ~2.3 on average) — e.g., relevance, factual consistency, safety — discovered by playing with real queries and judging real outputs.
+- **Build scoring rubrics with examples, then validate on humans.** Pick scales deliberately (binary? 1–5? entailment-style three-way?), write what each score looks like *and why*, and iterate until humans apply the rubric consistently. This same guideline later powers annotation and finetuning data (Chapter 8).
+
+Then **tie metrics to business outcomes**: "80% factual consistency → automate 30% of tickets; 98% → 90%" turns evaluation into a planning tool and justifies investment in metric improvements. Define the **usefulness threshold** below which you won't ship. And choose business metrics consciously — stickiness and engagement drive revenue and can also drive addictive features; that tension is yours to manage.
+
+### Step 3: Define methods and data
+
+**Mix methods per criterion**: a small toxicity classifier for safety, semantic similarity for relevance, an AI judge for factual consistency — and layer costs: a cheap classifier on 100% of traffic plus an expensive judge on 1% buys confidence at a manageable price. **Use logprobs when available** (classification confidence: three classes at 30-40% each = unconfident; one at 95% = confident; also fluency/perplexity measures). **Keep humans in the loop** without shame — many teams treat expert human review as the North Star even in production (LinkedIn manually reviews up to 500 conversations daily). And plan for production's reality: no reference data there, but real users — design the feedback you'll collect (Chapter 10).
+
+**Annotate evaluation data** — real production data if possible, sliced deliberately:
+
+- a production-distribution set for overall health, plus slices by tier (paying/free), platform (mobile/web), and usage;
+- a known-hard set (where the system historically fails), a user-mistakes set (typos!), and an out-of-scope set;
+- the slicing guards against bias toward minority groups, speeds debugging (is it long inputs?), reveals improvement targets, and protects you from **Simpson's paradox** — model A can win every subset and still lose the aggregate. If you care about something, put a test set on it.
+
+**Size the sets honestly.** Bootstrap your eval set (resample with replacement, re-evaluate, compare) — if 100 examples swing between 70% and 90% across bootstraps, you need more. For comparing systems, OpenAI's rule of thumb: detecting a 30% difference takes ~10 examples; 10% → ~100; 3% → ~1,000; 1% → ~10,000 — every 3× finer distinction costs 10× the data. (Reference points: the median benchmark in EleutherAI's harness has ~1,000 examples; the Inverse Scaling prize called 300 the absolute minimum.)
+
+Finally, **evaluate your evaluation pipeline**: Do better responses actually score higher — and do better scores produce better business outcomes? Is it reproducible (same pipeline twice = same result? judge temperature pinned to 0? configs consistent)? Are metrics appropriately correlated (perfectly correlated = redundant; utterly uncorrelated = insight or broken metric)? What latency and cost does evaluation itself add (skipping evaluation to save latency is a risky bet)? **Iterate** as needs change — but version and log everything (data, rubric, judge prompts, sampling configs), because an evaluation pipeline that changes constantly can't measure change in anything else.
+
+<KeyTakeaways
+  items={[
+    "Practice <strong>evaluation-driven development</strong>: define criteria before building. A deployed app nobody can evaluate is worse than one never deployed.",
+    "Four criteria buckets: <strong>domain capability</strong> (exact eval, MCQs — which test picking, not generating), <strong>generation</strong> (factual consistency + safety), <strong>instruction-following</strong> (test YOUR instructions), <strong>cost & latency</strong> (declare non-negotiables, then Pareto-optimize).",
+    "Factual consistency splits into <strong>local</strong> (vs provided context — tractable, the RAG criterion) and <strong>global</strong> (vs open knowledge — deciding the facts is the hard part). Tools: AI judges, SelfCheckGPT, SAFE, entailment classifiers.",
+    "Hallucination hot spots to oversample: niche knowledge, and questions about things that don't exist.",
+    "Safety spans toxicity, harmful instructions, stereotypes, and political bias — small specialized classifiers are often faster and cheaper than general AI judges.",
+    "Model selection = hard-attribute filter → public-benchmark shortlist → <strong>your own pipeline decides</strong> → production monitoring. Iterate.",
+    "Build vs buy turns on seven axes: privacy, lineage, performance, functionality (logprobs!), cost, control, on-device. 'Open source' usually means <strong>open weight</strong> — check licenses for commercial use and distillation rights.",
+    "Public leaderboards embed unexplained benchmark choices and aggregation politics (averaging vs win rate); check benchmark <strong>correlation</strong> before trusting composites.",
+    "<strong>Contamination</strong> is endemic — a 1M-parameter model trained on test sets beats giants. Detect via n-gram overlap and perplexity; demand clean-subset reporting.",
+    "Pipeline recipe: evaluate every component per-turn AND per-task; write a guideline that defines <strong>good</strong> (correct ≠ good) with validated rubrics; map metrics to business outcomes and a usefulness threshold.",
+    "Layer evaluation methods by cost (cheap classifier on everything, judge on a sample), slice your data (Simpson's paradox is real), and size eval sets by the differences you must detect (3× finer = 10× more samples).",
+    "Evaluate the evaluator: signal validity, reproducibility, metric correlation, added cost. Iterate on the pipeline — but version everything, or you can't trust month-over-month numbers.",
+  ]}
+/>
+
+<References
+  items={[
+    {
+      title: "Musings on Building a Generative AI Product",
+      url: "https://www.linkedin.com/blog/engineering/generative-ai/musings-on-building-a-generative-ai-product",
+      type: "Blog",
+      source: "LinkedIn Engineering",
+      why: "The production retrospective this chapter cites repeatedly — guideline pain, hallucination grind, manual review of 500 daily conversations. The most honest write-up of what evaluation costs in practice.",
+    },
+    {
+      title: "Instruction-Following Evaluation for Large Language Models (IFEval)",
+      url: "https://arxiv.org/abs/2311.07911",
+      type: "Paper",
+      source: "Zhou et al. · Google",
+      why: "The 25 automatically verifiable instruction types make a great template for building your own instruction-following test set — steal the format.",
+    },
+    {
+      title: "Pretraining on the Test Set Is All You Need",
+      url: "https://arxiv.org/abs/2309.08632",
+      type: "Paper",
+      source: "Rylan Schaeffer",
+      why: "The satirical one-pager that makes contamination unforgettable: a 1M-parameter model 'beats' GPT-4 by training on the benchmarks. Five minutes, permanent skepticism.",
+    },
+    {
+      title: "lm-evaluation-harness",
+      url: "https://github.com/EleutherAI/lm-evaluation-harness",
+      type: "Tool",
+      source: "EleutherAI",
+      why: "The standard open tool for running hundreds of benchmarks against any model — what you'll reach for when a model has no public score on the benchmark you care about.",
+    },
+    {
+      title: "How Are Enterprises Using Generative AI? (2024 survey)",
+      url: "https://a16z.com/generative-ai-enterprise-2024/",
+      type: "Blog",
+      source: "Andreessen Horowitz",
+      why: "The survey behind the chapter's control/customizability findings — useful market context for your own build-vs-buy memo.",
+    },
+    {
+      title: "Evaluating and Debugging Generative AI Models Using Weights and Biases",
+      url: "https://www.deeplearning.ai/short-courses/evaluating-debugging-generative-ai/",
+      type: "Course",
+      source: "DeepLearning.AI",
+      why: "A hands-on short course for instrumenting and tracking evaluations — the experiment-logging discipline this chapter's 'iterate but version everything' advice demands.",
+    },
+  ]}
+/>
+
+<KnowledgeCheck
+  chapter="ch04"
+  flashcards={flashcards}
+  quiz={quiz}
+  assignments={assignments}
+/>

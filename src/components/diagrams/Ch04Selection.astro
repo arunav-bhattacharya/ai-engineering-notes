@@ -1,0 +1,35 @@
+<svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four-step model selection workflow">
+  <defs>
+    <marker id="ch04sel-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-faint)" />
+    </marker>
+  </defs>
+
+  <!-- funnel steps -->
+  <rect x="60" y="16" width="600" height="74" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="84" y="44" font-size="13.5" font-weight="600" fill="var(--ink)">1 · Filter by HARD attributes</text>
+  <text x="84" y="64" font-size="11.5" fill="var(--ink-soft)">things you can't change: license, privacy policy, API vs self-host, on-device needs</text>
+  <text x="84" y="80" font-size="11.5" fill="var(--ink-soft)">→ all models  ⇒  a shortlist that's even allowed</text>
+
+  <line x1="360" y1="90" x2="360" y2="112" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch04sel-arrow)" />
+
+  <rect x="100" y="118" width="520" height="74" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="124" y="146" font-size="13.5" font-weight="600" fill="var(--ink)">2 · Narrow with PUBLIC information</text>
+  <text x="124" y="166" font-size="11.5" fill="var(--ink-soft)">benchmarks &amp; leaderboards balance quality × latency × cost —</text>
+  <text x="124" y="182" font-size="11.5" fill="var(--ink-soft)">good for weeding out bad models, never for the final pick (contamination!)</text>
+
+  <line x1="360" y1="192" x2="360" y2="214" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch04sel-arrow)" />
+
+  <rect x="140" y="220" width="440" height="74" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+  <text x="164" y="248" font-size="13.5" font-weight="600" fill="var(--accent-ink)">3 · Run YOUR OWN evaluation pipeline</text>
+  <text x="164" y="268" font-size="11.5" fill="var(--ink-soft)">your prompts, your data, your criteria, your rubric —</text>
+  <text x="164" y="284" font-size="11.5" fill="var(--ink-soft)">the only evaluation you can fully trust</text>
+
+  <line x1="360" y1="294" x2="360" y2="316" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch04sel-arrow)" />
+
+  <rect x="180" y="322" width="360" height="62" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="204" y="350" font-size="13.5" font-weight="600" fill="var(--ink)">4 · Monitor in production</text>
+  <text x="204" y="370" font-size="11.5" fill="var(--ink-soft)">detect failures, collect feedback, feed it all back</text>
+
+  <text x="360" y="416" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Iterative, not linear: production findings routinely send you back to step 1 (e.g. open source → commercial API).</text>
+</svg>
