@@ -794,7 +794,7 @@ dialog.search-modal::backdrop {
 }
 
 [data-theme="dark"] .btn.primary {
-  color: #10211f;
+  color: #111a33;
 }
 
 .btn.primary:hover {
