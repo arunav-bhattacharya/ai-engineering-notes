@@ -1,0 +1,24 @@
+<svg viewBox="0 0 720 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three memory mechanisms of an AI model">
+  <!-- internal -->
+  <rect x="40" y="20" width="640" height="80" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="64" y="48" font-size="13.5" font-weight="600" fill="var(--ink)">Internal knowledge — the model itself</text>
+  <text x="64" y="70" font-size="11" fill="var(--ink-soft)">learned at training time · available to every query · changes only when the model is retrained/finetuned</text>
+  <text x="64" y="88" font-size="11" font-style="italic" fill="var(--ink-faint)">human analog: knowing how to breathe</text>
+
+  <!-- short-term -->
+  <rect x="40" y="116" width="640" height="80" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+  <text x="64" y="144" font-size="13.5" font-weight="600" fill="var(--accent-ink)">Short-term memory — the context window</text>
+  <text x="64" y="166" font-size="11" fill="var(--ink-soft)">fast, small, gone after the task · holds what matters right now: conversation, tool outputs, current plan</text>
+  <text x="64" y="184" font-size="11" font-style="italic" fill="var(--ink-faint)">human analog: the name of someone you just met</text>
+
+  <!-- long-term -->
+  <rect x="40" y="212" width="640" height="80" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
+  <text x="64" y="240" font-size="13.5" font-weight="600" fill="var(--ink)">Long-term memory — external storage + retrieval</text>
+  <text x="64" y="262" font-size="11" fill="var(--ink-soft)">persists across sessions · accessed via retrieval (RAG) · deletable without touching the model</text>
+  <text x="64" y="280" font-size="11" font-style="italic" fill="var(--ink-faint)">human analog: books, notes, computers</text>
+
+  <!-- management -->
+  <text x="40" y="328" font-size="12" font-weight="600" fill="var(--ink)">Managing the overflow (short-term is the scarce resource):</text>
+  <text x="40" y="350" font-size="11" fill="var(--ink-soft)">FIFO (drop oldest — simple, but early messages often state the goal) · summarize the conversation · reflection-based:</text>
+  <text x="40" y="368" font-size="11" fill="var(--ink-soft)">after each action, decide — insert, merge with existing memory, or replace outdated/contradicting entries</text>
+</svg>

@@ -1,0 +1,205 @@
+---
+number: 6
+title: "RAG and Agents"
+shortTitle: "RAG and Agents"
+description: "Constructing the right context for every query: how RAG retrieval really works (term-based, embeddings, vector search, hybrid), the optimizations that matter (chunking, reranking, query rewriting), and the agentic pattern — tools, planning, reflection, failure modes — plus the memory systems both depend on."
+readingTime: 35
+---
+
+import Figure from "../../components/Figure.astro";
+import KeyTakeaways from "../../components/KeyTakeaways.astro";
+import References from "../../components/References.astro";
+import KnowledgeCheck from "../../components/KnowledgeCheck.astro";
+import Ch06RAG from "../../components/diagrams/Ch06RAG.astro";
+import Ch06Retrieval from "../../components/diagrams/Ch06Retrieval.astro";
+import Ch06Agent from "../../components/diagrams/Ch06Agent.astro";
+import Ch06Memory from "../../components/diagrams/Ch06Memory.astro";
+import { flashcards, quiz, assignments } from "../../data/knowledge/ch06";
+
+A model needs two things to solve a task: instructions (Chapter 5's subject) and information. Starved of context, models — like people — guess, and guesses become hallucinations. Instructions are shared across queries; **context is per-query**, and constructing it is this chapter's subject. Two patterns dominate: **RAG** (retrieval-augmented generation), which fetches relevant information from external sources, and **agents**, which use tools — search, APIs, executors — to gather information *and act on the world*. A useful equivalence to carry: context construction is to foundation models what feature engineering was to classical ML.
+
+## RAG
+
+RAG enhances generation by retrieving relevant information from external memory — internal databases, prior chat sessions, the internet — at query time. The retrieve-then-generate idea predates the boom (open-domain QA systems were retrieving Wikipedia pages for a reader model back in 2017; the term RAG arrived in 2020 for knowledge-intensive tasks where all relevant knowledge can't fit in the model). The payoff was clear from the start: more detailed answers, fewer hallucinations. Ask "Can Acme's fancy-printer-A300 print 100pps?" and the model does far better holding the A300's spec sheet.
+
+Will million-token context windows make RAG obsolete? The book argues no, three ways: data grows faster than context (and applications expand to fill whatever context exists — a Parkinson's Law of context); long context isn't *used* well (lost-in-the-middle, Chapter 5) while every extra token adds cost and latency; and retrieval feeds the model only what's relevant, which can improve quality while spending fewer tokens. The two efforts are complementary — and know when you need neither: Anthropic's guidance is that a knowledge base under ~200K tokens (~500 pages) can simply ride along in the prompt.
+
+<Figure num="6.1" caption="A RAG system: index documents ahead of time, then per query retrieve the most relevant chunks and hand them to the generator.">
+  <Ch06RAG />
+</Figure>
+
+The architecture is two components: a **retriever** (functions: *indexing* and *querying*) and a **generator**. Modern systems usually assemble off-the-shelf parts, though end-to-end finetuning of retriever + generator can substantially help. Documents get split into **chunks** (a chapter convention worth noting: "document" means both documents and chunks); per query, the top chunks join the user prompt to form the final prompt. The retriever's quality decides the system's.
+
+### Retrieval algorithms
+
+Retrieval is a century-old discipline (search engines, recommenders, log analytics), and RAG inherits its algorithms. Everything reduces to *ranking documents by relevance to a query*; algorithms differ in how they compute relevance.
+
+<Figure num="6.2" caption="The two retrieval families and the hybrid patterns that combine them in production.">
+  <Ch06Retrieval />
+</Figure>
+
+**Term-based (lexical) retrieval** matches keywords, refined by two classic ideas: **term frequency** (a document mentioning the term often is more relevant) and **inverse document frequency** (terms appearing everywhere — "for", "at" — carry little signal; importance is inversely proportional to document count). TF-IDF multiplies them; **BM25**, the industry workhorse, adds document-length normalization (long documents inflate raw TF). The enabling data structure is the **inverted index** — term → containing documents, with counts — powering Elasticsearch. Practical wrinkles: tokenization (treat common n-grams like "hot dog" as single terms or lose their meaning), lowercasing, stop-word removal. N-gram overlap with the query can also rank documents, though it discriminates poorly when documents dwarf queries.
+
+**Embedding-based (semantic) retrieval** ranks by *meaning*: index time converts chunks into embeddings stored in a **vector database**; query time embeds the query (same model!) and fetches the k nearest chunks. This fixes term ambiguity — "transformer architecture" stops returning movie reviews — and supports natural-language queries. The hard part is **vector search**: exact k-nearest-neighbors is precise but too slow beyond small datasets, so production uses **approximate nearest neighbor (ANN)** algorithms organized around buckets, trees, or graphs: **LSH** (hash similar vectors into shared buckets), **HNSW** (traverse a multi-layer proximity graph), **product quantization** (compress vectors into cheap subvector codes), **IVF** (k-means clusters; search the nearest centroids' clusters), and tree-based **Annoy**. Libraries like FAISS (IVF + PQ at its core), ScaNN, and Hnswlib implement these — you'll evaluate rather than implement. Index choice trades off four ANN-benchmark metrics: recall, queries-per-second, build time, index size (detailed indexes like HNSW: accurate and fast to query, slow and hungry to build; LSH: the reverse).
+
+<div class="note">
+<span class="aside-label">Sparse vs dense — and why the book avoids that split</span>
+
+Literature often divides retrievers into *sparse* (vectors mostly zeros — one-hot term vectors) versus *dense* (embeddings). But sparse embeddings exist (SPLADE pushes BERT embeddings toward sparsity for efficiency), and they behave like embedding retrieval, not term retrieval — so term-based vs embedding-based is the cleaner cut.
+
+</div>
+
+**Comparing and combining.** Term-based is much faster (both phases), works well out of the box, and is cheap — but offers few improvement knobs and stumbles on ambiguity. Embedding-based costs more (embedding generation on every data change — vector-DB bills reaching 20–50% of model-API spend are not rare — plus storage and search) but can be finetuned past the lexical ceiling; its blind spot is exact identifiers (error codes, product names) that embedding obscures. Hence **hybrid search**: *sequential* — a cheap retriever fetches candidates, a precise one **reranks** (fetch every "transformer" document by keyword, vector-rerank toward the intended sense); or *parallel ensemble* — multiple retrievers run and **reciprocal rank fusion** merges their rankings (each document scores Σ 1/(k + rank<sub>i</sub>), k ≈ 60).
+
+**Evaluating retrieval** runs at three levels: the retriever itself via **context precision** (share of retrieved docs that are relevant — easy: compare retrieved docs to the query, AI-judgeable) and **context recall** (share of relevant docs retrieved — hard: requires annotating the whole corpus per query, so many frameworks skip it), plus ranking metrics (NDCG, MAP, MRR) when order matters; the embeddings (MTEB); and always the end-to-end answer quality. When shopping for retrieval solutions, ask about supported mechanisms (hybrid?), embedding models and ANN algorithms, scalability, indexing throughput, query latency per algorithm, and pricing basis (volume vs queries).
+
+### Retrieval optimization
+
+Four levers raise the odds the right chunks surface:
+
+- **Chunking strategy.** Split by fixed units (characters, words, sentences, paragraphs) or recursively (sections → paragraphs → sentences) to avoid arbitrary cuts; specialized splitters exist for code and Q&A formats. **Overlap** protects boundary meaning ("I left my wife | a note" — neither half survives the cut). Chunk by tokens and you couple your index to one model's tokenizer (model swap = reindex everything). Size is a genuine trade-off: smaller chunks = more diverse context and finer retrieval, but risk of severed information and double the embedding/storage/search load. No universal answer — experiment.
+- **Reranking.** Refine initial rankings — with a precise expensive model (the hybrid pattern), or by recency for time-sensitive data (news, email). Context reranking differs from search reranking in that exact order matters less — what's included matters most — though order still counts given lost-in-the-middle.
+- **Query rewriting.** "How about Emily Doe?" retrieves garbage verbatim; rewritten to "When did Emily Doe last buy from us?" it works. Heuristic in classic search, model-powered in AI apps; can require identity resolution ("how about his wife?" needs a database lookup first) — and the rewriter must say *unresolvable* rather than invent a name.
+- **Contextual retrieval.** Enrich chunks before indexing: metadata (tags, keywords, extracted entities — letting exact identifiers like error codes survive embedding), the questions a chunk answers (support articles augmented with "I forgot my password" variants), or — Anthropic's recipe — an AI-written 50–100-token blurb situating the chunk in its source document, prepended before indexing.
+
+### RAG beyond text
+
+**Multimodal RAG**: with a multimodal generator, retrieve images too — by their captions/metadata, or by content via a joint embedding model (CLIP): embed all text and images into one space, embed the query, fetch nearest neighbors of either modality. **Tabular RAG** changes the workflow entirely: **text-to-SQL** (with a table-selection step if schemas overflow context) → **execute the query** → generate from results. Both extend the same lesson — the retriever is a *tool* — which is the bridge to agents.
+
+## Agents
+
+Agents are the oldest dream in AI (the classic textbook defines the field as the study of rational agents), newly within reach. The framing — offered with the honest caveat that this area is young, experimental, and fast-moving: an **agent** is anything that perceives its **environment** and acts on it through its **actions**. The environment comes from the use case (a game, the internet, a terminal + file system — as in a coding agent whose actions are navigate/search/view/edit); the action set is the **tool inventory**. Environment and tools constrain each other. By this definition, ChatGPT (search, Python, image generation) and every RAG system (retriever and SQL executor as tools) are already agents.
+
+What makes agentic work *different* is multi-step autonomy. A sales-projection request might trigger: reason about what's needed → generate SQL for historical sales → execute → reflect that data is insufficient → query marketing campaigns → execute → reason that it's enough → project → declare done. Two consequences follow: **compound errors** (95% per-step accuracy → 60% over 10 steps → 0.6% over 100 — agents need strong models) and **higher stakes** (tools amplify both usefulness and damage).
+
+<Figure num="6.3" caption="The agent loop — plan, validate, execute via function calling, reflect — and the three tool categories that define what an agent can do.">
+  <Ch06Agent />
+</Figure>
+
+### Tools
+
+Tools split into **read actions** (perceive) and **write actions** (change things), in three working categories:
+
+- **Knowledge augmentation** — the context constructors: retrievers, SQL executors, inventory APIs, Slack/email readers, and **web browsing** in the broad sense (search APIs, news APIs, social APIs), which keeps a model from going stale past its cutoff — while also piping in the internet's cesspools; choose APIs carefully.
+- **Capability extension** — patches for known model weaknesses, almost free performance: a calculator beats teaching arithmetic; calendars, unit converters, translators; **code interpreters** (turning models into analysts and research assistants — with code-injection risks to manage); and modality bridges (a text model + DALL·E generates images; captioners and OCR let it *read* images and PDFs). Evidence this matters: an agent wielding 13 tools beat its own base model by double digits on science and tabular-math benchmarks — tool use can outdo prompting *and* finetuning.
+- **Write actions** — emails sent, databases updated, transfers initiated: full workflow automation, and the part that rightly frightens people. The book's stance: treat it like any trust decision — you don't give interns prod-database deletion rights; don't give unproven AI bank-transfer rights — but note that humans fail too, and security maturity (not blanket prohibition) is the path. Providers ship tool use as **function calling**, now table stakes.
+
+### Planning
+
+A task = **goal + constraints** (two-week SF→India trip, $5,000). Complex tasks need **plans** — and the first insight is that among *correct* decompositions, efficiency varies wildly: to count zero-revenue companies that raised $1B+, filter the small set (billion-raisers) rather than enumerate the huge one (revenue-less companies). Planning is fundamentally a search problem: explore paths, predict each path's outcome, pick the best, sometimes conclude no path exists — which often requires backtracking.
+
+**Decouple planning from execution.** Coupled (CoT-style think-then-do in one prompt), a thousand-step plan to nowhere burns hours of API spend before anyone notices. Instead: generate plan → **validate** (heuristics: reject unknown tools or >N steps; or an AI judge) → execute only validated plans → evaluate outcomes. Add an **intent classifier** (another prompt or model) to route tool selection — billing questions need payment APIs; password resets need docs retrieval — and to flag IRRELEVANT requests for polite refusal instead of wasted FLOPs. That's plan-generator + validator + executor (+ classifier): congratulations, you've built a **multi-agent system** — as most production agents quietly are. Parallel plan generation with an evaluator picking the winner trades cost for speed. And humans can slot into any stage — supplying high-level plans, validating, or executing the risky steps; define each action's automation level explicitly.
+
+The full task loop, with the step that separates working agents from flailing ones: **(1) plan generation** (task decomposition), **(2) reflection** on the plan, **(3) execution** (function calling), **(4) reflection** on outcomes — accomplished? errors? new plan. "Think step by step" is decomposition; "verify your answer" is reflection — you've been using baby versions all along.
+
+<div class="note">
+<span class="aside-label">Can foundation models actually plan?</span>
+
+Serious people say no — autoregressive LLMs "can't plan" (LeCun), and critics argue LLM "plans" are extracted planning *knowledge* that looks reasonable yet fails at execution time. The book's counterweight: it's unclear whether models fundamentally can't or we haven't given them the machinery. Planning-as-search needs backtracking (a model can revise a bad path or restart — functional backtracking) and *outcome prediction* — knowing what state each action leads to, which chain-of-thought alone doesn't provide but which models, holding so much world knowledge, may be able to supply. And even a model that can't plan solo can anchor a planner augmented with search tools and state tracking. (RL agents differ mainly in how the planner is built — trained expensively by RL algorithms vs prompted/finetuned foundation models; expect the approaches to merge.)
+
+</div>
+
+**Plan generation in practice** is prompt engineering: list the available functions with examples, ask for a plan as an action sequence. Parameters are the weak point — often inferable only from earlier tool outputs (get today's date before querying "last week"), sometimes genuinely underdetermined ("average price of best-selling products" — how many? over what period?) — so models guess, and both actions and parameters can be hallucinated (invalid functions, wrong arguments). Improvements: better system prompts and examples, better tool descriptions, *simpler refactored functions*, stronger models, or finetuning for plan generation. **Function calling** APIs structure this: declare a tool inventory (entry point, parameters, docs), control usage per query (`required`/`none`/`auto`), receive structured tool-call responses. Golden habit: **log and inspect every function call's parameter values.**
+
+**Granularity** trades generation against execution: detailed plans (exact function names) are harder to generate, easier to run — and brittle: rename `get_time()` and every prompt, example, and finetuned planner breaks. Natural-language plans ("get current date") survive API churn and hallucinate less, at the cost of a **translator** into executable calls — a far easier job than planning, fine for weaker models. Hierarchical planning (quarters → months → weeks) splits the difference.
+
+**Control flows** go beyond sequential: **parallel** (fetch 100 products' prices simultaneously), **if** (read the earnings report, *then* decide buy/sell), **for** (generate until a condition holds). Unlike traditional software, an AI model decides these branches — harder to generate and translate. Evaluate agent frameworks on which flows they support; parallel execution in particular slashes user-perceived latency.
+
+**Reflection and error correction** make agents succeed. Reflection slots in after the query (feasible?), after planning (sensible?), after each step (on track?), and after completion (done, really?). **ReAct** — the pattern you'll see everywhere — interleaves Thought → Act → Observation until finished; **Reflexion** sharpens it with a separate evaluator + self-reflection module (code failed ⅓ of tests → reflection: didn't handle all-negative arrays → corrected attempt). Implementable as self-critique or as separate scoring agents. The bill: reflection's thoughts and observations are tokens — cost and latency, multiplied across steps, plus example-heavy prompts eating context.
+
+**Tool selection** is empirical. Published agents range from 5 tools to 13 to selecting among 1,645 APIs; more tools = more capability but harder use and longer (context-eating) descriptions. Methods that work: compare performance across tool sets; **ablate** (tool removed, no drop → drop it); find tools the agent persistently misuses (fix or swap them); plot the tool-call distribution. Studies show different tasks lean on different tools and *different models prefer different tools* — GPT-4 spreading wider than ChatGPT. Frameworks specialize too (social-media APIs vs enterprise apps) — check extensibility, since your needs will outgrow today's inventory. The frontier: agents *making* tools — tracking which tools chain together (frequent X→Y pairs merge into bigger tools) and skill libraries where agents bank successful code routines for reuse.
+
+### Agent failure modes and evaluation
+
+Evaluation = catching failures. Agents add three new classes atop ordinary AI failures, and measuring means counting *how often each mode occurs*:
+
+- **Planning failures.** Tool-use errors in three flavors: invalid tool (`bing_search` isn't in the inventory), valid tool + invalid parameters (two args to one-arg `lbs_to_kg`), valid tool + wrong parameter *values* (lbs=100 when the user said 120). **Goal failures**: wrong destination, ignored constraints — budget, and the chronically under-tested **time** (the grant proposal finished after the deadline helps no one). And **reflection errors**: the agent insists 50 people are assigned to 30 rooms when it placed 40. Evaluate on (task, tool inventory) pairs × K generated plans: valid-plan rate, attempts-to-valid-plan, valid tool-call rate, per-flavor failure frequencies — then read the patterns (which task types? which tools? prompt better, or swap the tool).
+- **Tool failures.** Right tool, wrong output: a captioner mis-describes; a translator module mangles a high-level plan into the wrong call; or the inventory simply *lacks* the needed tool (internet stock prices, no internet access). Test every tool independently; print every call and output; benchmark translators; for domain gaps, watch what tools human experts reach for.
+- **Inefficiency.** Valid plan, right answer, wasteful path: track steps per task, cost per task, time per action — against a baseline (another agent, or humans — remembering AI economics differ: visiting 100 web pages is trivial in parallel for an agent and absurd for a person).
+
+## Memory
+
+Both patterns drown in information beyond any context limit — agents especially (instructions, examples, tool inventories, plans, tool outputs, reflections). A **memory system** manages it across three mechanisms:
+
+<Figure num="6.4" caption="Three memory tiers — weights, context, external storage — and the strategies for managing overflow between them.">
+  <Ch06Memory />
+</Figure>
+
+- **Internal knowledge** — in the weights; always available; changes only with (fine)tuning. *Knowing how to breathe.*
+- **Short-term memory** — the context window; fast, capacity-limited, per-task. *The name of someone you just met.*
+- **Long-term memory** — external storage accessed by retrieval; persists across sessions; deletable without touching the model. *Books and notes.*
+
+Placement follows frequency of use: always-needed → weights; current-task → context; rarely-needed → external. The payoffs: surviving within-session information overflow (spill to long-term); **cross-session persistence** (an AI coach you don't re-brief on your life; book recommendations that remember you loved *The Three-Body Problem*); **consistency** (a model that recalls rating a joke 4/5 yesterday repeats it today); and **structural integrity** (tables stored as tables — an Excel sheet for leads, a queue for pending actions — instead of structure-losing text in context).
+
+Mechanically: **memory retrieval** is just RAG over long-term memory; **memory management** decides what lives where. Short-term is the scarce resource (reserve, say, 30% of context for retrieved long-term memory; overflow past the rest moves out). Strategies, simple to clever: **FIFO** (drop the oldest — easy, and dangerous, because early messages often state the conversation's *purpose*); **summarization** (compress redundancy; an advanced variant classifies each original-vs-summary sentence for what survives into the new memory); and **reflection-based** (after each action, decide: insert this, merge it, or replace outdated/contradicted entries — with contradiction-handling itself a design choice: keep newest, let AI adjudicate, or even retain both for perspective).
+
+<KeyTakeaways
+  items={[
+    "Context construction is per-query feature engineering. Two patterns deliver it: <strong>RAG</strong> retrieves; <strong>agents</strong> retrieve and act.",
+    "RAG survives long-context models: data outgrows windows, models lose the middle anyway, and tokens cost money. (But under ~200K tokens of knowledge, just stuff the prompt.)",
+    "The retriever decides RAG quality. <strong>BM25</strong> (TF-IDF + length normalization on an inverted index) is the fast, cheap, hard-to-beat baseline; <strong>embedding retrieval</strong> buys semantics and finetunability at embedding + vector-search cost.",
+    "Vector search = approximate nearest neighbors: LSH, HNSW, product quantization, IVF — traded off across recall, QPS, build time, index size.",
+    "Production = <strong>hybrid</strong>: cheap retrieve → precise rerank, or parallel retrievers fused with reciprocal rank fusion. Evaluate with context precision/recall + end-to-end answers.",
+    "The optimization levers: chunking (size, overlap, recursive splits), reranking, <strong>query rewriting</strong> (follow-ups die without it), and contextual retrieval (enrich chunks with metadata, answerable questions, or situating blurbs).",
+    "An <strong>agent</strong> = environment + tools + an AI planner. Compound errors (95%-per-step → 60% over 10 steps) are why agents demand strong models.",
+    "Tools come in three kinds: knowledge augmentation, capability extension (a calculator beats arithmetic training; 13 tools beat the bare model), and write actions — gate those with approvals and sandboxes.",
+    "<strong>Decouple planning from execution</strong> and validate plans before running them. Plans in natural language survive tool-API churn; a cheap translator makes them executable.",
+    "<strong>Reflection</strong> (ReAct's Thought→Act→Observation; Reflexion's evaluator + self-reflection) is what makes agents succeed — paid for in tokens and latency.",
+    "Evaluate agents by failure-mode frequency: invalid tools, bad parameters, wrong values, goal/constraint misses (including <strong>time</strong>), false done-claims, missing tools, and inefficiency (steps, cost, duration).",
+    "Memory has three tiers — weights, context, external store — assigned by usage frequency. Manage overflow with summarization or reflection (insert/merge/replace), not blind FIFO: the oldest message often states the goal.",
+  ]}
+/>
+
+<References
+  items={[
+    {
+      title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
+      url: "https://arxiv.org/abs/2005.11401",
+      type: "Paper",
+      source: "Lewis et al., 2020",
+      why: "The paper that named RAG — worth skimming to see how much of today's standard architecture (retriever + generator, fewer hallucinations) was there from day one.",
+    },
+    {
+      title: "Introducing Contextual Retrieval",
+      url: "https://www.anthropic.com/news/contextual-retrieval",
+      type: "Blog",
+      source: "Anthropic",
+      why: "The chunk-augmentation technique this chapter describes, from the source — with the exact prompt, benchmark numbers, and when to skip RAG entirely.",
+    },
+    {
+      title: "LLM Powered Autonomous Agents",
+      url: "https://lilianweng.github.io/posts/2023-06-23-agent/",
+      type: "Blog",
+      source: "Lilian Weng · OpenAI",
+      why: "The canonical survey of the agent stack — planning, memory, tool use — that organizes the same territory as this chapter's second half with deep paper references.",
+    },
+    {
+      title: "ReAct: Synergizing Reasoning and Acting in Language Models",
+      url: "https://arxiv.org/abs/2210.03629",
+      type: "Paper",
+      source: "Yao et al., 2022",
+      why: "The Thought→Act→Observation loop underneath practically every agent framework you'll touch — short, readable, and full of failure examples worth studying.",
+    },
+    {
+      title: "Agents",
+      url: "https://huyenchip.com/2025/01/07/agents.html",
+      type: "Blog",
+      source: "Chip Huyen",
+      why: "The author's expanded standalone treatment of this chapter's agent half — planning, tool selection, and failure modes with additional examples and updates.",
+    },
+    {
+      title: "Building and Evaluating Advanced RAG",
+      url: "https://www.deeplearning.ai/short-courses/building-evaluating-advanced-rag/",
+      type: "Course",
+      source: "DeepLearning.AI + TruEra",
+      why: "Hands-on practice for this chapter's RAG half: sentence-window retrieval, auto-merging, and the triad of evaluation metrics (context relevance, groundedness, answer relevance).",
+    },
+  ]}
+/>
+
+<KnowledgeCheck
+  chapter="ch06"
+  flashcards={flashcards}
+  quiz={quiz}
+  assignments={assignments}
+/>
