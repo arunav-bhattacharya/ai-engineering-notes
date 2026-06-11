@@ -26,7 +26,7 @@ commit per completed chapter.
 - [x] Chapter 8 — Dataset Engineering
 - [x] Chapter 9 — Inference Optimization
 - [x] Chapter 10 — Architecture and User Feedback
-- [ ] Home page final pass (chapter cards, overview, preface/epilogue essence)
+- [x] Home page final pass (chapter cards, overview, preface/epilogue essence)
 
 ## Phase C — QA
 - [ ] Light/dark screenshots, every diagram checked for text overlap
