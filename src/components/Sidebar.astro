@@ -61,16 +61,38 @@ const chapters = (await getCollection("chapters")).sort(
   const sidebar = document.getElementById("sidebar");
   const backdrop = document.getElementById("sidebar-backdrop");
   const toggle = document.getElementById("sidebar-toggle");
+  const isDesktop = () => matchMedia("(min-width: 1024px)").matches;
   const close = () => {
     sidebar?.classList.remove("open");
     backdrop?.classList.remove("open");
     toggle?.setAttribute("aria-expanded", "false");
   };
+  const syncToggleState = () => {
+    if (isDesktop()) {
+      const collapsed =
+        document.documentElement.classList.contains("sidebar-collapsed");
+      toggle?.setAttribute("aria-expanded", String(!collapsed));
+      toggle?.setAttribute(
+        "aria-label",
+        collapsed ? "Expand chapter list" : "Collapse chapter list",
+      );
+    }
+  };
   toggle?.addEventListener("click", () => {
-    const open = sidebar?.classList.toggle("open");
-    backdrop?.classList.toggle("open", !!open);
-    toggle.setAttribute("aria-expanded", String(!!open));
+    if (isDesktop()) {
+      // Desktop: collapse/expand the sidebar column; content reflows into it.
+      const collapsed =
+        document.documentElement.classList.toggle("sidebar-collapsed");
+      localStorage.setItem("aie:sidebar", collapsed ? "collapsed" : "open");
+      syncToggleState();
+    } else {
+      // Mobile: slide-in overlay.
+      const open = sidebar?.classList.toggle("open");
+      backdrop?.classList.toggle("open", !!open);
+      toggle.setAttribute("aria-expanded", String(!!open));
+    }
   });
   backdrop?.addEventListener("click", close);
   addEventListener("keydown", (e) => e.key === "Escape" && close());
+  syncToggleState();
 </script>

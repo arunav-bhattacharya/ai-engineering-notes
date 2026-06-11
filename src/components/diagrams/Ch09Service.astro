@@ -27,8 +27,8 @@
   <!-- parallelism -->
   <rect x="40" y="304" width="640" height="100" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
   <text x="60" y="330" font-size="12.5" font-weight="600" fill="var(--ink)">Parallelism strategies</text>
-  <text x="60" y="350" font-size="10.5" fill="var(--ink-soft)">replica: more copies of the model — simple, handles more traffic · tensor: split each operation's matrices across devices —</text>
-  <text x="60" y="366" font-size="10.5" fill="var(--ink-soft)">serves models too big for one machine AND cuts latency · pipeline: split layers into stages — throughput up, per-request</text>
+  <text x="60" y="350" font-size="10.5" fill="var(--ink-soft)">replica: more model copies — simple, more traffic · tensor: split each operation's matrices across devices —</text>
+  <text x="60" y="366" font-size="10.5" fill="var(--ink-soft)">fits models too big for one machine AND cuts latency · pipeline: layers in stages — throughput up, per-request</text>
   <text x="60" y="382" font-size="10.5" fill="var(--ink-soft)">latency up (training favorite, latency-sensitive serving avoids it) · context/sequence parallelism for very long inputs</text>
 
   <text x="360" y="428" font-size="11.5" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Highest-impact combo across use cases: quantization + tensor parallelism + replica parallelism + attention optimization.</text>

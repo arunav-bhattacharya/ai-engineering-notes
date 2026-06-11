@@ -44,7 +44,7 @@
   <!-- speculative decoding flow -->
   <rect x="40" y="328" width="640" height="92" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
   <text x="58" y="352" font-size="11.5" font-weight="600" fill="var(--accent-ink)">Speculative decoding in one line</text>
-  <text x="58" y="372" font-size="10.5" fill="var(--ink-soft)">small draft model writes K tokens → big model verifies all K in parallel (verification ≈ prefill, cheap) → accept the agreeing</text>
+  <text x="58" y="372" font-size="10.5" fill="var(--ink-soft)">small draft writes K tokens → big model verifies all K in parallel (verification ≈ prefill) → accept the agreeing</text>
   <text x="58" y="390" font-size="10.5" fill="var(--ink-soft)">prefix + one real token → repeat · easy tokens are predictable, so acceptance is high (more so for code) ·</text>
   <text x="58" y="408" font-size="10.5" fill="var(--ink-soft)">halved latency with zero quality change in published results — now standard in vLLM, TensorRT-LLM, llama.cpp</text>
 </svg>

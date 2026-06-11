@@ -30,7 +30,7 @@ const base = import.meta.env.BASE_URL;
       rel="stylesheet"
     />
     <script is:inline>
-      // Set theme before first paint to avoid flash.
+      // Set theme and sidebar state before first paint to avoid flash.
       (() => {
         const saved = localStorage.getItem("aie:theme");
         const theme =
@@ -39,6 +39,9 @@ const base = import.meta.env.BASE_URL;
             ? "dark"
             : "light");
         document.documentElement.dataset.theme = theme;
+        if (localStorage.getItem("aie:sidebar") === "collapsed") {
+          document.documentElement.classList.add("sidebar-collapsed");
+        }
       })();
     </script>
   </head>
