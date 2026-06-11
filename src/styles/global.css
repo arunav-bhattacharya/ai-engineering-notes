@@ -636,7 +636,7 @@ button {
   left: 0;
   height: 2px;
   width: 0;
-  background: var(--accent);
+  background: var(--accent-grad);
   z-index: 60;
   transition: width 0.1s linear;
 }
@@ -788,18 +788,18 @@ dialog.search-modal::backdrop {
 }
 
 .btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-grad);
+  border-color: transparent;
   color: #fff;
 }
 
 [data-theme="dark"] .btn.primary {
-  color: #111a33;
+  color: #2a160c;
 }
 
 .btn.primary:hover {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+  border-color: transparent;
+  filter: brightness(0.95);
 }
 
 .btn:disabled {

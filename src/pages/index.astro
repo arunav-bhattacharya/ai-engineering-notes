@@ -152,7 +152,10 @@ const totalMinutes = chapters.reduce((sum, c) => sum + c.data.readingTime, 0);
 <style>
   .hero-em {
     font-style: italic;
-    color: var(--accent);
+    background: var(--accent-grad-text);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   .home-actions {
     display: flex;
@@ -182,6 +185,7 @@ const totalMinutes = chapters.reduce((sum, c) => sum + c.data.readingTime, 0);
     text-decoration: none;
     border-color: var(--accent);
     box-shadow: var(--shadow-m);
+    background: linear-gradient(135deg, var(--bg-raised), var(--accent-soft));
   }
   .card-top {
     display: flex;
