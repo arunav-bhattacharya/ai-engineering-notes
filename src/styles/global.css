@@ -154,6 +154,16 @@ button {
     grid-template-columns: 17rem minmax(0, 1fr);
   }
 
+  /* home page: no chapter sidebar, single centered column */
+  .shell.no-sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shell.no-sidebar .prose {
+    max-width: 72ch;
+    margin-inline: auto;
+  }
+
   /* collapsed sidebar: content reflows into the freed column */
   html.sidebar-collapsed .shell {
     grid-template-columns: minmax(0, 1fr);

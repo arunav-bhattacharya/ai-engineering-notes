@@ -1,7 +1,6 @@
 ---
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
-import Sidebar from "../components/Sidebar.astro";
 
 const base = import.meta.env.BASE_URL;
 const chapters = (await getCollection("chapters")).sort(
@@ -12,10 +11,8 @@ const chapters = (await getCollection("chapters")).sort(
 <Base
   title="AI Engineering — Field Notes"
   description="Chapter-by-chapter study notes on AI Engineering by Chip Huyen: foundation models, evaluation, prompt engineering, RAG, agents, finetuning, dataset engineering, inference optimization, and AI system architecture."
-  withSidebarToggle
 >
-  <div class="shell">
-    <Sidebar currentSlug="home" />
+  <div class="shell no-sidebar">
     <main class="content">
       <div class="prose">
         <h1>
