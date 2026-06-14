@@ -1,14 +1,14 @@
 <svg viewBox="0 0 720 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Computational bottlenecks and the memory hierarchy">
   <!-- two bottlenecks -->
   <rect x="40" y="20" width="310" height="120" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="60" y="46" font-size="13" font-weight="600" fill="var(--ink)">Compute-bound</text>
+  <text x="60" y="46" font-size="13" font-weight="550" fill="var(--ink)">Compute-bound</text>
   <text x="60" y="68" font-size="10.5" fill="var(--ink-soft)">limited by arithmetic operations available</text>
   <text x="60" y="86" font-size="10.5" fill="var(--ink-soft)">· image generation · LLM PREFILL</text>
   <text x="60" y="104" font-size="10.5" fill="var(--ink-soft)">(input tokens processed in parallel)</text>
   <text x="60" y="126" font-size="10.5" fill="var(--accent-ink)">fix: more FLOP/s — faster/more chips</text>
 
   <rect x="370" y="20" width="310" height="120" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="390" y="46" font-size="13" font-weight="600" fill="var(--ink)">Memory bandwidth-bound</text>
+  <text x="390" y="46" font-size="13" font-weight="550" fill="var(--ink)">Memory bandwidth-bound</text>
   <text x="390" y="68" font-size="10.5" fill="var(--ink-soft)">limited by data movement speed</text>
   <text x="390" y="86" font-size="10.5" fill="var(--ink-soft)">· LLM DECODE — weights reloaded into compute</text>
   <text x="390" y="104" font-size="10.5" fill="var(--ink-soft)">units for every single generated token</text>
@@ -17,18 +17,18 @@
   <text x="360" y="168" font-size="11.5" text-anchor="middle" fill="var(--ink-soft)">Different profiles → prefill and decode are often run on separate machines in production.</text>
 
   <!-- memory hierarchy -->
-  <text x="40" y="204" font-size="13.5" font-weight="600" fill="var(--ink)">The accelerator memory hierarchy (illustrative numbers)</text>
+  <text x="40" y="204" font-size="13.5" font-weight="550" fill="var(--ink)">The accelerator memory hierarchy (illustrative numbers)</text>
 
   <rect x="40" y="218" width="640" height="50" rx="9" fill="var(--bg-raised)" stroke="var(--line)" />
-  <text x="60" y="240" font-size="11.5" font-weight="600" fill="var(--ink)">CPU memory (DRAM)</text>
+  <text x="60" y="240" font-size="11.5" font-weight="550" fill="var(--ink)">CPU memory (DRAM)</text>
   <text x="60" y="258" font-size="10" fill="var(--ink-soft)">large (16 GB – 1 TB+) · slow transfer: ~25–50 GB/s</text>
 
   <rect x="80" y="278" width="560" height="50" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="100" y="300" font-size="11.5" font-weight="600" fill="var(--ink)">GPU high-bandwidth memory (HBM)</text>
+  <text x="100" y="300" font-size="11.5" font-weight="550" fill="var(--ink)">GPU high-bandwidth memory (HBM)</text>
   <text x="100" y="318" font-size="10" fill="var(--ink-soft)">24–80 GB on consumer cards · ~256 GB/s – 1.5+ TB/s — where weights and KV cache live</text>
 
   <rect x="120" y="338" width="480" height="50" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" />
-  <text x="140" y="360" font-size="11.5" font-weight="600" fill="var(--accent-ink)">GPU on-chip SRAM (caches, registers)</text>
+  <text x="140" y="360" font-size="11.5" font-weight="550" fill="var(--accent-ink)">GPU on-chip SRAM (caches, registers)</text>
   <text x="140" y="378" font-size="10" fill="var(--ink-soft)">tiny (≤ ~40 MB) · blazing (10+ TB/s) — kernels like FlashAttention exploit this tier</text>
 
   <text x="360" y="412" font-size="11.5" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Much of GPU optimization = keeping data in the fast, small tiers — frameworks hide this; kernel writers exploit it.</text>

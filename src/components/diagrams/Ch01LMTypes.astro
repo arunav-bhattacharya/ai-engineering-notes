@@ -6,7 +6,7 @@
   </defs>
 
   <!-- ============ panel A: autoregressive ============ -->
-  <text x="50" y="28" font-size="14" font-weight="600" fill="var(--ink)">Autoregressive — predict the NEXT token from what came before</text>
+  <text x="50" y="28" font-size="14" font-weight="550" fill="var(--ink)">Autoregressive — predict the NEXT token from what came before</text>
 
   <!-- arcs from context tokens to target (peaks stay below y=40) -->
   <path d="M 96 108 C 130 52, 480 52, 540 106" fill="none" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ch01lm-arrow)" />
@@ -25,12 +25,12 @@
     <rect x="380" y="110" width="92" height="36" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)" />
     <text x="426" y="133" fill="var(--ink)">is</text>
     <rect x="490" y="110" width="92" height="36" rx="7" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5" />
-    <text x="536" y="133" font-weight="600" fill="var(--accent-ink)">__?</text>
+    <text x="536" y="133" font-weight="550" fill="var(--accent-ink)">__?</text>
   </g>
   <text x="50" y="176" font-size="12" fill="var(--ink-soft)">e.g. the GPT family · the default for text generation — it can keep producing one token after another</text>
 
   <!-- ============ panel B: masked ============ -->
-  <text x="50" y="232" font-size="14" font-weight="600" fill="var(--ink)">Masked — fill in a blank using context from BOTH sides</text>
+  <text x="50" y="232" font-size="14" font-weight="550" fill="var(--ink)">Masked — fill in a blank using context from BOTH sides</text>
 
   <!-- arcs into the middle blank from left and right -->
   <path d="M 96 312 C 120 260, 260 260, 308 310" fill="none" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ch01lm-arrow)" />
@@ -44,7 +44,7 @@
     <rect x="160" y="314" width="92" height="36" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)" />
     <text x="206" y="337" fill="var(--ink)">favorite</text>
     <rect x="280" y="314" width="92" height="36" rx="7" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5" />
-    <text x="326" y="337" font-weight="600" fill="var(--accent-ink)">__?</text>
+    <text x="326" y="337" font-weight="550" fill="var(--accent-ink)">__?</text>
     <rect x="380" y="314" width="92" height="36" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)" />
     <text x="426" y="337" fill="var(--ink)">is</text>
     <rect x="490" y="314" width="92" height="36" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)" />

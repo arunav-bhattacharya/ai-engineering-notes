@@ -10,40 +10,40 @@
 
   <!-- user -->
   <rect x="40" y="20" width="120" height="44" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" />
-  <text x="100" y="47" font-size="12.5" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">User query</text>
+  <text x="100" y="47" font-size="12.5" font-weight="550" text-anchor="middle" fill="var(--accent-ink)">User query</text>
 
   <line x1="100" y1="64" x2="100" y2="96" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch10ar-arrow)" />
 
   <!-- input guardrails -->
   <rect x="40" y="102" width="200" height="50" rx="9" fill="var(--warn-soft)" stroke="var(--warn-ink)" />
-  <text x="140" y="123" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--warn-ink)">② Input guardrails</text>
+  <text x="140" y="123" font-size="11.5" font-weight="550" text-anchor="middle" fill="var(--warn-ink)">② Input guardrails</text>
   <text x="140" y="141" font-size="9.5" text-anchor="middle" fill="var(--ink-soft)">PII masking · attack detection</text>
 
   <line x1="240" y1="127" x2="278" y2="127" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch10ar-arrow)" />
 
   <!-- router -->
   <rect x="284" y="102" width="170" height="50" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="369" y="123" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">③ Router</text>
+  <text x="369" y="123" font-size="11.5" font-weight="550" text-anchor="middle" fill="var(--ink)">③ Router</text>
   <text x="369" y="141" font-size="9.5" text-anchor="middle" fill="var(--ink-soft)">intent → model / human / refuse</text>
 
   <line x1="454" y1="127" x2="492" y2="127" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch10ar-arrow)" />
 
   <!-- context construction -->
   <rect x="498" y="102" width="182" height="50" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="589" y="123" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">① Context construction</text>
+  <text x="589" y="123" font-size="11.5" font-weight="550" text-anchor="middle" fill="var(--ink)">① Context construction</text>
   <text x="589" y="141" font-size="9.5" text-anchor="middle" fill="var(--ink-soft)">retrieval · tools · web search</text>
 
   <line x1="589" y1="152" x2="589" y2="184" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch10ar-arrow)" />
 
   <!-- gateway + model -->
   <rect x="284" y="190" width="396" height="70" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" />
-  <text x="482" y="214" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">③ Model gateway → models (generation, scoring, routing)</text>
+  <text x="482" y="214" font-size="11.5" font-weight="550" text-anchor="middle" fill="var(--accent-ink)">③ Model gateway → models (generation, scoring, routing)</text>
   <text x="482" y="232" font-size="9.5" text-anchor="middle" fill="var(--ink-soft)">unified interface · access control · cost limits · fallbacks · logging</text>
   <text x="482" y="248" font-size="9.5" text-anchor="middle" fill="var(--ink-soft)">(KV cache &amp; prompt cache live here)</text>
 
   <!-- cache -->
   <rect x="40" y="190" width="200" height="70" rx="9" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="140" y="214" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">④ Caches</text>
+  <text x="140" y="214" font-size="11.5" font-weight="550" text-anchor="middle" fill="var(--ink)">④ Caches</text>
   <text x="140" y="232" font-size="9.5" text-anchor="middle" fill="var(--ink-soft)">exact: same query → same answer</text>
   <text x="140" y="248" font-size="9.5" text-anchor="middle" fill="var(--ink-soft)">semantic: similar query (riskier)</text>
   <line x1="240" y1="225" x2="278" y2="225" stroke="var(--ink-faint)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ch10ar-arrow)" />
@@ -52,7 +52,7 @@
 
   <!-- output guardrails -->
   <rect x="284" y="298" width="396" height="50" rx="9" fill="var(--warn-soft)" stroke="var(--warn-ink)" />
-  <text x="482" y="319" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--warn-ink)">② Output guardrails + scorers</text>
+  <text x="482" y="319" font-size="11.5" font-weight="550" text-anchor="middle" fill="var(--warn-ink)">② Output guardrails + scorers</text>
   <text x="482" y="337" font-size="9.5" text-anchor="middle" fill="var(--ink-soft)">format · factuality · safety · retry logic · human fallback</text>
 
   <!-- agent loop -->
@@ -61,11 +61,11 @@
 
   <line x1="284" y1="323" x2="146" y2="323" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch10ar-arrow)" />
   <rect x="40" y="298" width="100" height="50" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" />
-  <text x="90" y="328" font-size="12" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">Response</text>
+  <text x="90" y="328" font-size="12" font-weight="550" text-anchor="middle" fill="var(--accent-ink)">Response</text>
 
   <!-- observability strip -->
   <rect x="40" y="378" width="640" height="50" rx="9" fill="var(--bg-raised)" stroke="var(--line)" stroke-dasharray="6 4" />
-  <text x="360" y="399" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">Observability spans everything: metrics · logs · traces · drift detection</text>
+  <text x="360" y="399" font-size="11.5" font-weight="550" text-anchor="middle" fill="var(--ink)">Observability spans everything: metrics · logs · traces · drift detection</text>
   <text x="360" y="417" font-size="9.5" text-anchor="middle" fill="var(--ink-soft)">orchestrator chains the components — add it later, not first</text>
 
   <text x="360" y="456" font-size="11.5" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Numbers ①–⑤ show the order components are typically added as needs arise — start with query → model → response.</text>

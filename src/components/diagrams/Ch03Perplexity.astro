@@ -7,13 +7,13 @@
 
   <!-- entropy -->
   <rect x="40" y="20" width="300" height="78" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="60" y="46" font-size="14" font-weight="600" fill="var(--ink)">Entropy H(P)</text>
+  <text x="60" y="46" font-size="14" font-weight="550" fill="var(--ink)">Entropy H(P)</text>
   <text x="60" y="66" font-size="11.5" fill="var(--ink-soft)">how much information each token carries —</text>
   <text x="60" y="83" font-size="11.5" fill="var(--ink-soft)">how hard the data itself is to predict</text>
 
   <!-- cross entropy -->
   <rect x="380" y="20" width="300" height="78" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="400" y="46" font-size="14" font-weight="600" fill="var(--ink)">Cross entropy H(P, Q)</text>
+  <text x="400" y="46" font-size="14" font-weight="550" fill="var(--ink)">Cross entropy H(P, Q)</text>
   <text x="400" y="66" font-size="11.5" fill="var(--ink-soft)">how hard the data is for THIS model:</text>
   <text x="400" y="83" font-size="11.5" fill="var(--ink-soft)">H(P) + KL divergence (model’s error)</text>
 
@@ -24,18 +24,18 @@
   <text x="544" y="117" font-size="11.5" font-style="italic" fill="var(--accent)">2^H (or e^H in nats)</text>
 
   <rect x="380" y="132" width="300" height="78" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
-  <text x="400" y="158" font-size="14" font-weight="600" fill="var(--accent-ink)">Perplexity = 2^H(P, Q)</text>
+  <text x="400" y="158" font-size="14" font-weight="550" fill="var(--accent-ink)">Perplexity = 2^H(P, Q)</text>
   <text x="400" y="178" font-size="11.5" fill="var(--ink-soft)">“how many options is the model effectively</text>
   <text x="400" y="195" font-size="11.5" fill="var(--ink-soft)">choosing between for each next token?”</text>
 
   <!-- variations -->
   <rect x="40" y="132" width="300" height="78" rx="10" fill="var(--bg-raised)" stroke="var(--line)" stroke-dasharray="5 4" />
-  <text x="60" y="158" font-size="13" font-weight="600" fill="var(--ink)">Cousins: BPC and BPB</text>
+  <text x="60" y="158" font-size="13" font-weight="550" fill="var(--ink)">Cousins: BPC and BPB</text>
   <text x="60" y="178" font-size="11.5" fill="var(--ink-soft)">bits-per-character / bits-per-byte — the same</text>
   <text x="60" y="195" font-size="11.5" fill="var(--ink-soft)">idea, normalized to compare across tokenizers</text>
 
   <!-- rules of thumb -->
-  <text x="40" y="248" font-size="12.5" font-weight="600" fill="var(--ink)">Reading perplexity:</text>
+  <text x="40" y="248" font-size="12.5" font-weight="550" fill="var(--ink)">Reading perplexity:</text>
   <text x="40" y="270" font-size="11.5" fill="var(--ink-soft)">↓ lower with structured data (HTML)  ·  ↑ higher with bigger vocabularies  ·  ↓ lower with more context</text>
   <text x="40" y="292" font-size="11.5" fill="var(--ink-soft)">very low on a benchmark → the model probably trained on it (contamination signal)</text>
   <text x="40" y="314" font-size="11.5" fill="var(--ink-soft)">very high on a text → unusual or gibberish content (anomaly signal) · rises after post-training (less trustworthy then)</text>

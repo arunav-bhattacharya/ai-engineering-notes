@@ -69,7 +69,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-weight: 600;
+  font-weight: 550;
   font-size: 0.95rem;
   letter-spacing: 0.01em;
   color: var(--ink);
@@ -249,7 +249,7 @@ button {
 
 .nav-group-label {
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 550;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--ink-faint);
@@ -285,7 +285,7 @@ button {
 
 .chapter-link .num {
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 550;
   color: var(--ink-faint);
   min-width: 1.1rem;
   font-variant-numeric: tabular-nums;
@@ -321,7 +321,7 @@ button {
 
 .toc-chapnum {
   font-size: 2.6rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   letter-spacing: -0.02em;
   color: var(--line-strong);
@@ -331,7 +331,7 @@ button {
 
 .toc-label {
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 550;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--ink-faint);
@@ -415,7 +415,7 @@ button {
 
 .prose .kicker {
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 550;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent);
@@ -441,7 +441,7 @@ button {
 .prose h1 {
   font-size: clamp(1.85rem, 4vw, 2.5rem);
   line-height: 1.15;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.015em;
   margin: 0 0 0.75rem;
 }
@@ -455,7 +455,7 @@ button {
 
 .prose h2 {
   font-size: 1.55rem;
-  font-weight: 600;
+  font-weight: 550;
   letter-spacing: -0.01em;
   line-height: 1.25;
   margin: 3rem 0 1rem;
@@ -465,13 +465,13 @@ button {
 
 .prose h3 {
   font-size: 1.18rem;
-  font-weight: 600;
+  font-weight: 550;
   margin: 2.2rem 0 0.7rem;
 }
 
 .prose h4 {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 550;
   margin: 1.8rem 0 0.5rem;
 }
 
@@ -503,7 +503,7 @@ button {
 }
 
 .prose strong {
-  font-weight: 600;
+  font-weight: 550;
 }
 
 .prose blockquote {
@@ -568,7 +568,7 @@ button {
 
 .prose th {
   text-align: left;
-  font-weight: 600;
+  font-weight: 550;
   color: var(--ink-soft);
   font-size: 0.8rem;
   text-transform: uppercase;
@@ -611,7 +611,7 @@ button {
 .prose .tip .aside-label {
   display: block;
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 550;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 0.3rem;
@@ -661,7 +661,7 @@ button {
 }
 
 .figure figcaption .fig-num {
-  font-weight: 600;
+  font-weight: 550;
   color: var(--ink-soft);
 }
 
@@ -796,7 +796,7 @@ dialog.search-modal::backdrop {
 .pill {
   display: inline-block;
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 550;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 0.15rem 0.6rem;
@@ -911,7 +911,7 @@ dialog.search-modal::backdrop {
 
 .fc-side-label {
   font-size: 0.7rem;
-  font-weight: 600;
+  font-weight: 550;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: var(--ink-faint);
@@ -932,7 +932,7 @@ dialog.search-modal::backdrop {
   top: 0.8rem;
   right: 1rem;
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 550;
 }
 
 .fc-status.got {
@@ -1001,7 +1001,7 @@ dialog.search-modal::backdrop {
 .quiz-num {
   flex: none;
   font-size: 0.78rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
   line-height: 1.9;
@@ -1054,7 +1054,7 @@ dialog.search-modal::backdrop {
 
 .quiz-letter {
   font-size: 0.75rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ink-faint);
 }
 

@@ -7,7 +7,7 @@
 
   <!-- frozen W -->
   <rect x="50" y="40" width="160" height="160" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="130" y="115" font-size="15" font-weight="600" text-anchor="middle" fill="var(--ink)">W</text>
+  <text x="130" y="115" font-size="15" font-weight="550" text-anchor="middle" fill="var(--ink)">W</text>
   <text x="130" y="136" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">n × m, FROZEN</text>
   <text x="130" y="222" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">original weight matrix</text>
 
@@ -16,13 +16,13 @@
 
   <!-- A and B -->
   <rect x="290" y="40" width="46" height="160" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
-  <text x="313" y="115" font-size="13" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">A</text>
+  <text x="313" y="115" font-size="13" font-weight="550" text-anchor="middle" fill="var(--accent-ink)">A</text>
   <text x="313" y="134" font-size="9.5" text-anchor="middle" fill="var(--ink-soft)">n × r</text>
 
   <text x="356" y="128" font-size="16" text-anchor="middle" fill="var(--ink-soft)">×</text>
 
   <rect x="376" y="96" width="160" height="46" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
-  <text x="456" y="118" font-size="13" font-weight="600" text-anchor="middle" fill="var(--accent-ink)">B</text>
+  <text x="456" y="118" font-size="13" font-weight="550" text-anchor="middle" fill="var(--accent-ink)">B</text>
   <text x="456" y="133" font-size="9.5" text-anchor="middle" fill="var(--ink-soft)">r × m</text>
 
   <text x="412" y="222" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">trainable low-rank pair — rank r ≈ 4–64 suffices</text>
@@ -30,23 +30,23 @@
   <!-- result -->
   <line x1="546" y1="119" x2="592" y2="119" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch07lr-arrow)" />
   <rect x="598" y="64" width="100" height="110" rx="9" fill="var(--bg-raised)" stroke="var(--accent)" stroke-width="1.5" />
-  <text x="648" y="112" font-size="13" font-weight="600" text-anchor="middle" fill="var(--ink)">W′ = W +</text>
-  <text x="648" y="132" font-size="13" font-weight="600" text-anchor="middle" fill="var(--ink)">(α/r)·A·B</text>
+  <text x="648" y="112" font-size="13" font-weight="550" text-anchor="middle" fill="var(--ink)">W′ = W +</text>
+  <text x="648" y="132" font-size="13" font-weight="550" text-anchor="middle" fill="var(--ink)">(α/r)·A·B</text>
 
   <!-- facts row -->
   <g font-size="10.5">
     <rect x="40" y="252" width="205" height="74" rx="9" fill="var(--bg-raised)" stroke="var(--line)" />
-    <text x="142" y="274" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">Tiny trainable footprint</text>
+    <text x="142" y="274" font-size="11.5" font-weight="550" text-anchor="middle" fill="var(--ink)">Tiny trainable footprint</text>
     <text x="142" y="294" text-anchor="middle" fill="var(--ink-soft)">GPT-3: ~4.7M trainable params</text>
     <text x="142" y="310" text-anchor="middle" fill="var(--ink-soft)">≈ 0.0027% of full finetuning</text>
 
     <rect x="258" y="252" width="205" height="74" rx="9" fill="var(--bg-raised)" stroke="var(--line)" />
-    <text x="360" y="274" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">No inference latency</text>
+    <text x="360" y="274" font-size="11.5" font-weight="550" text-anchor="middle" fill="var(--ink)">No inference latency</text>
     <text x="360" y="294" text-anchor="middle" fill="var(--ink-soft)">merge A·B into W before serving —</text>
     <text x="360" y="310" text-anchor="middle" fill="var(--ink-soft)">unlike classic bolt-on adapters</text>
 
     <rect x="476" y="252" width="205" height="74" rx="9" fill="var(--bg-raised)" stroke="var(--line)" />
-    <text x="578" y="274" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">Multi-LoRA serving</text>
+    <text x="578" y="274" font-size="11.5" font-weight="550" text-anchor="middle" fill="var(--ink)">Multi-LoRA serving</text>
     <text x="578" y="294" text-anchor="middle" fill="var(--ink-soft)">keep adapters separate: 1 base W</text>
     <text x="578" y="310" text-anchor="middle" fill="var(--ink-soft)">+ 100 tiny (A,B) pairs per customer</text>
   </g>

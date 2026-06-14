@@ -7,7 +7,7 @@
 
   <!-- term-based -->
   <rect x="40" y="20" width="310" height="150" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="60" y="46" font-size="13" font-weight="600" fill="var(--ink)">Term-based (lexical)</text>
+  <text x="60" y="46" font-size="13" font-weight="550" fill="var(--ink)">Term-based (lexical)</text>
   <text x="60" y="68" font-size="10.5" fill="var(--ink-soft)">match keywords · TF-IDF, BM25, Elasticsearch</text>
   <text x="60" y="86" font-size="10.5" fill="var(--ink-soft)">inverted index: term → documents containing it</text>
   <text x="60" y="108" font-size="10.5" fill="var(--good-ink)">+ fast, cheap, strong out of the box</text>
@@ -16,7 +16,7 @@
 
   <!-- embedding-based -->
   <rect x="370" y="20" width="310" height="150" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="390" y="46" font-size="13" font-weight="600" fill="var(--ink)">Embedding-based (semantic)</text>
+  <text x="390" y="46" font-size="13" font-weight="550" fill="var(--ink)">Embedding-based (semantic)</text>
   <text x="390" y="68" font-size="10.5" fill="var(--ink-soft)">match meaning · embed query, nearest neighbors</text>
   <text x="390" y="86" font-size="10.5" fill="var(--ink-soft)">vector DB + ANN: HNSW, IVF, LSH, product quantization</text>
   <text x="390" y="108" font-size="10.5" fill="var(--good-ink)">+ natural queries · finetunable past lexical ceiling</text>
@@ -24,10 +24,10 @@
   <text x="390" y="144" font-size="10.5" fill="var(--bad-ink)">− obscures exact keywords (error codes, SKUs)</text>
 
   <!-- hybrid -->
-  <text x="40" y="212" font-size="13.5" font-weight="600" fill="var(--ink)">Production answer: hybrid search</text>
+  <text x="40" y="212" font-size="13.5" font-weight="550" fill="var(--ink)">Production answer: hybrid search</text>
 
   <rect x="40" y="228" width="640" height="80" rx="10" fill="var(--bg-raised)" stroke="var(--line)" />
-  <text x="58" y="252" font-size="11.5" font-weight="600" fill="var(--ink)">In sequence — retrieve cheap, rerank precise</text>
+  <text x="58" y="252" font-size="11.5" font-weight="550" fill="var(--ink)">In sequence — retrieve cheap, rerank precise</text>
   <g font-size="11" text-anchor="middle">
     <rect x="70" y="262" width="170" height="34" rx="8" fill="var(--bg-inset)" stroke="var(--line-strong)" />
     <text x="155" y="284" fill="var(--ink)">BM25 fetches candidates</text>
@@ -40,7 +40,7 @@
   </g>
 
   <rect x="40" y="322" width="640" height="64" rx="10" fill="var(--bg-raised)" stroke="var(--line)" />
-  <text x="58" y="346" font-size="11.5" font-weight="600" fill="var(--ink)">In parallel — ensemble + reciprocal rank fusion (RRF)</text>
+  <text x="58" y="346" font-size="11.5" font-weight="550" fill="var(--ink)">In parallel — ensemble + reciprocal rank fusion (RRF)</text>
   <text x="58" y="368" font-size="10.5" fill="var(--ink-soft)">run both retrievers; each document's score = Σ 1/(k + rankᵢ) across retrievers — high ranks anywhere lift the final ranking</text>
 
   <text x="360" y="416" font-size="12" font-style="italic" text-anchor="middle" fill="var(--ink-soft)">Evaluate with context precision &amp; recall (+ NDCG/MRR for ranking) — and always end-to-end answer quality.</text>

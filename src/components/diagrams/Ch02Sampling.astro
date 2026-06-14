@@ -7,7 +7,7 @@
 
   <!-- step 1: logits -->
   <rect x="40" y="20" width="640" height="64" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="64" y="46" font-size="14" font-weight="600" fill="var(--ink)">1 · Model outputs a logit vector</text>
+  <text x="64" y="46" font-size="14" font-weight="550" fill="var(--ink)">1 · Model outputs a logit vector</text>
   <text x="64" y="68" font-size="11.5" fill="var(--ink-soft)">one raw score per vocabulary token — can be negative, don’t sum to 1</text>
 
   <line x1="360" y1="84" x2="360" y2="108" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch02sa-arrow)" />
@@ -15,7 +15,7 @@
 
   <!-- step 2: temperature -->
   <rect x="40" y="114" width="640" height="64" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="64" y="140" font-size="14" font-weight="600" fill="var(--ink)">2 · Temperature reshapes the distribution</text>
+  <text x="64" y="140" font-size="14" font-weight="550" fill="var(--ink)">2 · Temperature reshapes the distribution</text>
   <text x="64" y="162" font-size="11.5" fill="var(--ink-soft)">low T → sharper, safer picks · high T → flatter, rarer tokens surface · T=0 → just take the argmax</text>
 
   <line x1="360" y1="178" x2="360" y2="202" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch02sa-arrow)" />
@@ -23,7 +23,7 @@
 
   <!-- step 3: filter -->
   <rect x="40" y="208" width="640" height="96" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="64" y="234" font-size="14" font-weight="600" fill="var(--ink)">3 · Restrict the candidate pool</text>
+  <text x="64" y="234" font-size="14" font-weight="550" fill="var(--ink)">3 · Restrict the candidate pool</text>
   <text x="64" y="256" font-size="11.5" fill="var(--ink-soft)">top-k: keep only the k highest-scoring tokens (cheaper softmax)</text>
   <text x="64" y="274" font-size="11.5" fill="var(--ink-soft)">top-p (nucleus): keep the smallest set whose probabilities sum to p — pool size adapts to context</text>
   <text x="64" y="292" font-size="11.5" fill="var(--ink-soft)">constrained sampling: keep only tokens valid under a format grammar (e.g. JSON)</text>
@@ -32,7 +32,7 @@
 
   <!-- step 4: sample -->
   <rect x="40" y="334" width="640" height="60" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
-  <text x="64" y="360" font-size="14" font-weight="600" fill="var(--accent-ink)">4 · Sample one token from what remains</text>
+  <text x="64" y="360" font-size="14" font-weight="550" fill="var(--accent-ink)">4 · Sample one token from what remains</text>
   <text x="64" y="380" font-size="11.5" fill="var(--ink-soft)">append it to the sequence, then repeat — until a stop token, stop word, or max length</text>
 
   <line x1="360" y1="394" x2="360" y2="418" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ch02sa-arrow)" />

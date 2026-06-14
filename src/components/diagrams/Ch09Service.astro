@@ -1,9 +1,9 @@
 <svg viewBox="0 0 720 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Service-level inference optimization techniques">
-  <text x="360" y="28" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--ink)">Service-level optimization: same model, smarter resource use (quality unchanged)</text>
+  <text x="360" y="28" font-size="13.5" font-weight="550" text-anchor="middle" fill="var(--ink)">Service-level optimization: same model, smarter resource use (quality unchanged)</text>
 
   <!-- batching -->
   <rect x="40" y="48" width="640" height="108" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="60" y="74" font-size="12.5" font-weight="600" fill="var(--ink)">Batching — the bus, not the car</text>
+  <text x="60" y="74" font-size="12.5" font-weight="550" fill="var(--ink)">Batching — the bus, not the car</text>
   <text x="60" y="96" font-size="10.5" fill="var(--ink-soft)">static: depart when full — last passenger delays everyone · dynamic: depart when full OR on schedule — bounded</text>
   <text x="60" y="112" font-size="10.5" fill="var(--ink-soft)">latency, possibly half-empty buses · continuous (in-flight): drop a passenger off, pick a new one up immediately —</text>
   <text x="60" y="128" font-size="10.5" fill="var(--ink-soft)">short responses return without waiting for long ones (Orca)</text>
@@ -11,14 +11,14 @@
 
   <!-- decoupling + caching row -->
   <rect x="40" y="172" width="310" height="116" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="60" y="198" font-size="12.5" font-weight="600" fill="var(--ink)">Decouple prefill &amp; decode</text>
+  <text x="60" y="198" font-size="12.5" font-weight="550" fill="var(--ink)">Decouple prefill &amp; decode</text>
   <text x="60" y="218" font-size="10.5" fill="var(--ink-soft)">different bottlenecks → separate machines,</text>
   <text x="60" y="234" font-size="10.5" fill="var(--ink-soft)">so prefill jobs stop starving decode jobs</text>
   <text x="60" y="252" font-size="10.5" fill="var(--ink-soft)">instance ratio tunes TTFT vs TPOT</text>
   <text x="60" y="268" font-size="10.5" fill="var(--ink-soft)">(long inputs + TTFT priority → 2:1 – 4:1)</text>
 
   <rect x="370" y="172" width="310" height="116" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
-  <text x="390" y="198" font-size="12.5" font-weight="600" fill="var(--accent-ink)">Prompt (prefix) caching</text>
+  <text x="390" y="198" font-size="12.5" font-weight="550" fill="var(--accent-ink)">Prompt (prefix) caching</text>
   <text x="390" y="218" font-size="10.5" fill="var(--ink-soft)">process shared segments once: system prompts,</text>
   <text x="390" y="234" font-size="10.5" fill="var(--ink-soft)">long documents, earlier conversation turns</text>
   <text x="390" y="252" font-size="10.5" fill="var(--ink-soft)">1K-token system prompt × 1M calls/day ≈</text>
@@ -26,7 +26,7 @@
 
   <!-- parallelism -->
   <rect x="40" y="304" width="640" height="100" rx="10" fill="var(--bg-inset)" stroke="var(--line-strong)" />
-  <text x="60" y="330" font-size="12.5" font-weight="600" fill="var(--ink)">Parallelism strategies</text>
+  <text x="60" y="330" font-size="12.5" font-weight="550" fill="var(--ink)">Parallelism strategies</text>
   <text x="60" y="350" font-size="10.5" fill="var(--ink-soft)">replica: more model copies — simple, more traffic · tensor: split each operation's matrices across devices —</text>
   <text x="60" y="366" font-size="10.5" fill="var(--ink-soft)">fits models too big for one machine AND cuts latency · pipeline: layers in stages — throughput up, per-request</text>
   <text x="60" y="382" font-size="10.5" fill="var(--ink-soft)">latency up (training favorite, latency-sensitive serving avoids it) · context/sequence parallelism for very long inputs</text>
