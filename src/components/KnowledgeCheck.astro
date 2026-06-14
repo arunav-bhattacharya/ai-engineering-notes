@@ -22,22 +22,151 @@ const { chapter, flashcards, quiz, assignments } = Astro.props;
     Your progress here is saved in this browser — leave and come back anytime.
   </p>
 
-  <h3 id="flashcards">Flashcards</h3>
-  <Flashcards client:load cards={flashcards} storageKey={chapter} />
+  <div class="kc-tabs" role="tablist" aria-label="Test your knowledge">
+    <button
+      class="kc-tab is-active"
+      role="tab"
+      type="button"
+      id="kc-tab-flashcards"
+      aria-controls="kc-panel-flashcards"
+      aria-selected="true"
+      data-panel="flashcards"
+    >
+      Flashcards <span class="kc-tab-count">{flashcards.length}</span>
+    </button>
+    <button
+      class="kc-tab"
+      role="tab"
+      type="button"
+      id="kc-tab-quiz"
+      aria-controls="kc-panel-quiz"
+      aria-selected="false"
+      data-panel="quiz"
+    >
+      Quiz <span class="kc-tab-count">{quiz.length}</span>
+    </button>
+    <button
+      class="kc-tab"
+      role="tab"
+      type="button"
+      id="kc-tab-assignments"
+      aria-controls="kc-panel-assignments"
+      aria-selected="false"
+      data-panel="assignments"
+    >
+      Assignments <span class="kc-tab-count">{assignments.length}</span>
+    </button>
+  </div>
 
-  <h3 id="quiz">Quiz</h3>
-  <Quiz client:load questions={quiz} storageKey={chapter} />
-
-  <Assignments items={assignments} />
+  <div
+    class="kc-panel is-active"
+    id="kc-panel-flashcards"
+    role="tabpanel"
+    aria-labelledby="kc-tab-flashcards"
+  >
+    <Flashcards client:load cards={flashcards} storageKey={chapter} />
+  </div>
+  <div
+    class="kc-panel"
+    id="kc-panel-quiz"
+    role="tabpanel"
+    aria-labelledby="kc-tab-quiz"
+    hidden
+  >
+    <Quiz client:load questions={quiz} storageKey={chapter} />
+  </div>
+  <div
+    class="kc-panel"
+    id="kc-panel-assignments"
+    role="tabpanel"
+    aria-labelledby="kc-tab-assignments"
+    hidden
+  >
+    <Assignments items={assignments} />
+  </div>
 </section>
+
+<script>
+  document.querySelectorAll<HTMLElement>(".kc-section").forEach((section) => {
+    const tabs = section.querySelectorAll<HTMLButtonElement>(".kc-tab");
+    const panels = section.querySelectorAll<HTMLElement>(".kc-panel");
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const name = tab.dataset.panel;
+        tabs.forEach((t) => {
+          const active = t === tab;
+          t.classList.toggle("is-active", active);
+          t.setAttribute("aria-selected", String(active));
+        });
+        panels.forEach((p) => {
+          const active = p.id === `kc-panel-${name}`;
+          p.classList.toggle("is-active", active);
+          p.toggleAttribute("hidden", !active);
+        });
+      });
+    });
+  });
+</script>
 
 <style>
   .kc-intro {
     color: var(--ink-soft);
     font-size: 0.92rem;
-    margin-top: -0.4rem;
+    margin: -0.2rem 0 1.3rem;
   }
-  .kc-section h3 {
-    margin-top: 2.4rem;
+
+  .kc-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 1.6rem;
+  }
+
+  .kc-tab {
+    appearance: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    padding: 0.55rem 0.5rem;
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.15s;
+  }
+
+  .kc-tab:hover {
+    color: var(--ink);
+  }
+
+  .kc-tab.is-active {
+    color: var(--accent-ink);
+    border-bottom-color: var(--accent);
+  }
+
+  .kc-tab-count {
+    font-size: 0.72rem;
+    font-weight: 600;
+    min-width: 1.3rem;
+    text-align: center;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: var(--bg-inset);
+    color: var(--ink-faint);
+  }
+
+  .kc-tab.is-active .kc-tab-count {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+  }
+
+  .kc-panel[hidden] {
+    display: none;
   }
 </style>

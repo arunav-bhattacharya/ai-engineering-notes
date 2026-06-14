@@ -4,15 +4,21 @@ import type { MarkdownHeading } from "astro";
 interface Props {
   headings: MarkdownHeading[];
   variant: "desktop" | "mobile";
+  chapterNumber?: number;
 }
 
-const { headings, variant } = Astro.props;
+const { headings, variant, chapterNumber } = Astro.props;
 const items = headings.filter((h) => h.depth === 2 || h.depth === 3);
 ---
 
 {
   variant === "desktop" ? (
     <aside class="toc" aria-label="On this page">
+      {chapterNumber != null && (
+        <div class="toc-chapnum" aria-hidden="true">
+          {String(chapterNumber).padStart(2, "0")}
+        </div>
+      )}
       <p class="toc-label">On this page</p>
       <ol id="toc-list">
         {items.map((h) => (
@@ -22,6 +28,11 @@ const items = headings.filter((h) => h.depth === 2 || h.depth === 3);
             </a>
           </li>
         ))}
+        <li class="depth-2 toc-special">
+          <a href="#test-your-knowledge" data-target="test-your-knowledge">
+            Test your knowledge
+          </a>
+        </li>
       </ol>
     </aside>
   ) : (
@@ -33,6 +44,9 @@ const items = headings.filter((h) => h.depth === 2 || h.depth === 3);
             <a href={`#${h.slug}`}>{h.text}</a>
           </li>
         ))}
+        <li class="depth-2 toc-special">
+          <a href="#test-your-knowledge">Test your knowledge</a>
+        </li>
       </ol>
     </details>
   )

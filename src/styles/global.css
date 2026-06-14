@@ -305,8 +305,18 @@ button {
     height: calc(100vh - var(--header-h));
     overflow-y: auto;
     padding: 2.5rem 1.5rem 2rem 0.5rem;
-    font-size: 0.82rem;
+    font-size: 0.76rem;
   }
+}
+
+.toc-chapnum {
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--line-strong);
+  margin: 0 0 0.7rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .toc-label {
@@ -346,6 +356,11 @@ button {
 .toc li a.current {
   color: var(--accent-ink);
   border-left-color: var(--accent);
+}
+
+.toc-special a,
+.toc-mobile .toc-special a {
+  font-style: italic;
 }
 
 .toc-mobile {
@@ -395,6 +410,22 @@ button {
   text-transform: uppercase;
   color: var(--accent);
   margin: 0 0 0.6rem;
+}
+
+.prose .chapter-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--accent-ink);
+  margin: 0.4rem 0 1.4rem;
+}
+
+.prose .chapter-stats .cs-sep {
+  color: var(--accent);
+  opacity: 0.45;
 }
 
 .prose h1 {
