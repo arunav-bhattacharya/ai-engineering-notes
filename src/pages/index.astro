@@ -25,7 +25,8 @@ const totalMinutes = chapters.reduce((sum, c) => sum + c.data.readingTime, 0);
         </h1>
         <p class="lede">
           Study notes on <em>AI Engineering: Building Applications with
-          Foundation Models</em> by Chip Huyen — every chapter explained from
+          Foundation Models</em> by <span class="author">Chip Huyen</span> —
+          every chapter explained from
           first principles, with diagrams, flashcards, quizzes, and hands-on
           assignments. Written for beginners, without dumbing down the advanced
           parts.
@@ -48,32 +49,6 @@ const totalMinutes = chapters.reduce((sum, c) => sum + c.data.readingTime, 0);
             Get the actual book
           </a>
         </div>
-
-        <section class="how">
-          <h2 id="how-to-use">How to use these notes</h2>
-          <ul>
-            <li>
-              <strong>Read in order if you're new.</strong> The book builds
-              deliberately: what foundation models are → how to evaluate them →
-              how to adapt them (prompts, context, finetuning) → how to serve
-              them well. Later chapters assume the earlier vocabulary.
-            </li>
-            <li>
-              <strong>Each chapter ends with a workout.</strong> Key takeaways
-              for review, flashcards and a quiz for recall, and assignments
-              that turn reading into skill. Progress saves in your browser.
-            </li>
-            <li>
-              <strong>Search anything</strong> with <code>⌘K</code> /
-              <code>Ctrl K</code> — every section is indexed.
-            </li>
-            <li>
-              <strong>These notes complement the book, not replace it.</strong>
-              They compress ~500 pages of nuance; the book carries the full
-              argument, references, and war stories.
-            </li>
-          </ul>
-        </section>
 
         <section>
           <h2 id="chapters">The chapters</h2>
@@ -113,10 +88,37 @@ const totalMinutes = chapters.reduce((sum, c) => sum + c.data.readingTime, 0);
           </div>
         </section>
 
+        <section class="how">
+          <h2 id="how-to-use">How to use these notes</h2>
+          <ul>
+            <li>
+              <strong>Read in order if you're new.</strong> The book builds
+              deliberately: what foundation models are → how to evaluate them →
+              how to adapt them (prompts, context, finetuning) → how to serve
+              them well. Later chapters assume the earlier vocabulary.
+            </li>
+            <li>
+              <strong>Each chapter ends with a workout.</strong> Key takeaways
+              for review, flashcards and a quiz for recall, and assignments
+              that turn reading into skill. Progress saves in your browser.
+            </li>
+            <li>
+              <strong>Search anything</strong> with <code>⌘K</code> /
+              <code>Ctrl K</code> — every section is indexed.
+            </li>
+            <li>
+              <strong>These notes complement the book, not replace it.</strong>
+              They compress ~500 pages of nuance; the book carries the full
+              argument, references, and war stories.
+            </li>
+          </ul>
+        </section>
+
         <section class="about-book">
           <h2 id="about-the-book">About the book</h2>
           <p>
-            <em>AI Engineering</em> (O&rsquo;Reilly, 2025) is Chip Huyen&rsquo;s
+            <em>AI Engineering</em> (O&rsquo;Reilly, 2025) is
+            <span class="author">Chip Huyen</span>&rsquo;s
             follow-up to <em>Designing Machine Learning Systems</em>. Its core
             claim: building applications on top of foundation models is a new
             discipline — closer to product engineering than to classical ML —
@@ -228,5 +230,9 @@ const totalMinutes = chapters.reduce((sum, c) => sum + c.data.readingTime, 0);
   }
   .how li {
     margin-bottom: 0.7rem;
+  }
+  .author {
+    color: var(--accent-ink);
+    font-weight: 600;
   }
 </style>
